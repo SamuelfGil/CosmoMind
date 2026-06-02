@@ -1,0 +1,599 @@
+import pygame
+import json
+import random
+import sys
+import os
+import math
+
+# --- Inicialização ---
+pygame.init()
+
+LARGURA = 800
+ALTURA  = 600
+tela    = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption("Espaço de Perguntas - CosmoMind")
+relogio = pygame.time.Clock()
+
+# --- Cores ---
+FUNDO        = (10, 10, 30)
+FUNDO_PAINEL = (15, 15, 45)
+AZUL_ESC     = (25, 35, 70)
+AZUL         = (50, 100, 200)
+AZUL_HOVER   = (70, 130, 240)
+VERDE        = (50, 200, 100)
+VERDE_ESC    = (30, 130, 60)
+VERMELHO     = (220, 70, 70)
+VERMELHO_ESC = (150, 40, 40)
+AMARELO      = (255, 220, 50)
+LARANJA      = (255, 140, 30)
+BRANCO       = (240, 240, 255)
+CINZA        = (120, 130, 160)
+CINZA_ESC    = (55, 60, 85)
+
+# --- Fontes ---
+fonte_titulo   = pygame.font.SysFont("Arial", 34, bold=True)
+fonte_pergunta = pygame.font.SysFont("Arial", 19, bold=True)
+fonte_alt      = pygame.font.SysFont("Arial", 16)
+fonte_info     = pygame.font.SysFont("Arial", 18)
+fonte_pequena  = pygame.font.SysFont("Arial", 14)
+
+# ------------------------------------------------------------------ helpers
+
+def quebrar_linhas(texto, fonte, largura_max):
+    palavras = texto.split(" ")
+    linhas, atual = [], ""
+    for p in palavras:
+        teste = atual + (" " if atual else "") + p
+        if fonte.size(teste)[0] <= largura_max:
+            atual = teste
+        else:
+            if atual:
+                linhas.append(atual)
+            atual = p
+    if atual:
+        linhas.append(atual)
+    return linhas
+
+def renderizar_texto(surface, texto, fonte, cor, x, y, largura_max):
+    linhas = quebrar_linhas(texto, fonte, largura_max)
+    h = fonte.get_linesize()
+    for i, l in enumerate(linhas):
+        surface.blit(fonte.render(l, True, cor), (x, y + i * h))
+    return len(linhas) * h
+
+def altura_texto(texto, fonte, largura_max):
+    return len(quebrar_linhas(texto, fonte, largura_max)) * fonte.get_linesize()
+
+# ------------------------------------------------------------------ estrelas
+
+ESTRELAS = [(random.Random(42 + i).randint(0, LARGURA),
+             random.Random(99 + i).randint(0, ALTURA),
+             random.Random(7  + i).choice([1, 1, 1, 2]),
+             random.Random(3  + i).randint(60, 200))
+            for i in range(150)]
+
+def desenhar_estrelas():
+    for x, y, r, a in ESTRELAS:
+        s = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+        pygame.draw.circle(s, (255, 255, 255, a), (r, r), r)
+        tela.blit(s, (x - r, y - r))
+
+# ------------------------------------------------------------------ nave (desenhada com polígono)
+
+NAVE_CX = LARGURA // 2          # fixa no centro
+NAVE_CY = ALTURA  // 2
+
+def pontos_nave(cx, cy, tamanho=18):
+    """Triângulo apontando para cima + motor."""
+    return [
+        (cx,           cy - tamanho),      # ponta superior
+        (cx - tamanho * 0.7, cy + tamanho * 0.6),
+        (cx,           cy + tamanho * 0.2),
+        (cx + tamanho * 0.7, cy + tamanho * 0.6),
+    ]
+
+def desenhar_nave(cx, cy, escudo_ativo=False):
+    # Escudo
+    if escudo_ativo:
+        s = pygame.Surface((80, 80), pygame.SRCALPHA)
+        pygame.draw.circle(s, (80, 160, 255, 55), (40, 40), 36)
+        pygame.draw.circle(s, (100, 200, 255, 130), (40, 40), 36, 2)
+        tela.blit(s, (cx - 40, cy - 40))
+
+    pts = pontos_nave(cx, cy)
+    pygame.draw.polygon(tela, (60, 160, 255), pts)
+    pygame.draw.polygon(tela, (160, 220, 255), pts, 2)
+
+    # Chama do motor
+    chama = [
+        (cx - 8, cy + tamanho_nave()),
+        (cx,     cy + tamanho_nave() + random.randint(6, 14)),
+        (cx + 8, cy + tamanho_nave()),
+    ]
+    pygame.draw.polygon(tela, LARANJA, chama)
+
+def tamanho_nave():
+    return 18
+
+# ------------------------------------------------------------------ asteroide
+
+def pontos_asteroide(cx, cy, raio, angulo_rot, num_pontos=9):
+    """Polígono irregular girando."""
+    rng = random.Random(77)
+    pts = []
+    for i in range(num_pontos):
+        ang = (2 * math.pi * i / num_pontos) + angulo_rot
+        r   = raio * rng.uniform(0.7, 1.0)
+        pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+    return pts
+
+def desenhar_asteroide(cx, cy, raio, angulo_rot, vel):
+    # Brilho de perigo quando rápido
+    intensidade = min(255, int(40 + vel * 18))
+    cor_centro  = (intensidade, max(0, intensidade - 80), 30)
+    cor_borda   = (255, min(255, intensidade + 60), 60)
+
+    pts = pontos_asteroide(cx, cy, raio, angulo_rot)
+    pygame.draw.polygon(tela, cor_centro, pts)
+    pygame.draw.polygon(tela, cor_borda,  pts, 2)
+
+    # Rachaduras decorativas
+    rng2 = random.Random(13)
+    for _ in range(3):
+        ox = rng2.randint(-int(raio*0.4), int(raio*0.4))
+        oy = rng2.randint(-int(raio*0.4), int(raio*0.4))
+        ex = ox + rng2.randint(-8, 8)
+        ey = oy + rng2.randint(-8, 8)
+        pygame.draw.line(tela, (40, 30, 20),
+                         (cx + ox, cy + oy), (cx + ex, cy + ey), 1)
+
+# ------------------------------------------------------------------ carregamento
+
+def carregar_perguntas(caminho="perguntas.json"):
+    if not os.path.exists(caminho):
+        return [
+            {"pergunta": "O que é um algoritmo?",
+             "alternativas": ["Uma linguagem de programação",
+                              "Uma sequência lógica e finita de passos para resolver um problema",
+                              "Uma peça de hardware do computador",
+                              "Um erro que ocorre durante a compilação"],
+             "correta": 1},
+            {"pergunta": "Para que serve o 'if/else'?",
+             "alternativas": ["Repetir código infinitamente",
+                              "Armazenar dados permanentemente",
+                              "Executar blocos diferentes conforme uma condição",
+                              "Declarar variáveis"],
+             "correta": 2},
+            {"pergunta": "O que é uma variável?",
+             "alternativas": ["Altera a velocidade do processador.",
+                              "Espaço na memória para armazenar um dado que pode mudar.",
+                              "Palavra reservada que não pode ser modificada.",
+                              "Laço de repetição que varia seus passos."],
+             "correta": 1},
+            {"pergunta": "Qual estrutura é melhor quando sabemos o número exato de repetições?",
+             "alternativas": ["while", "if/else", "for", "switch/case"],
+             "correta": 2},
+            {"pergunta": "O que é recursividade?",
+             "alternativas": ["Uma função que chama a si mesma para resolver partes menores do problema.",
+                              "Um for dentro de outro for.",
+                              "Um erro lógico que trava o computador.",
+                              "Converter código-fonte em linguagem de máquina."],
+             "correta": 0},
+        ]
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# ================================================================== CosmoMind
+
+class CosmoMind:
+
+    # estados
+    S_INICIO   = "inicio"
+    S_JOGANDO  = "jogando"
+    S_FEEDBACK = "feedback"
+    S_GAMEOVER = "gameover"
+    S_FIM      = "fim"
+
+    LETRAS       = ["A", "B", "C", "D"]
+    CORES_LETRAS = [(80,120,220),(180,90,200),(50,170,150),(200,130,40)]
+
+    # painel de perguntas: ocupa a metade inferior da tela
+    PAINEL_Y = 290
+    PAINEL_H = ALTURA - PAINEL_Y - 4
+
+    # asteroide começa no canto superior-direito
+    AST_INICIO_X = LARGURA - 60
+    AST_INICIO_Y = 60
+    VEL_BASE     = 0.6
+    VEL_AUMENTO  = 0.45   # por erro
+
+    def __init__(self):
+        self.todas = carregar_perguntas()
+        self.reiniciar()
+
+    # -------------------------------------------------------------- reiniciar
+
+    def reiniciar(self):
+        self.perguntas   = random.sample(self.todas, len(self.todas))
+        self.indice      = 0
+        self.pontuacao   = 0
+        self.estado      = self.S_INICIO
+        self.hover       = -1
+        self.selecionada = -1
+        self.erros       = 0
+
+        # asteroide
+        self.ast_x   = float(self.AST_INICIO_X)
+        self.ast_y   = float(self.AST_INICIO_Y)
+        self.ast_vel = self.VEL_BASE
+        self.ast_rot = 0.0
+        self.ast_raio = 22
+
+        # feedback visual
+        self.flash_timer  = 0   # > 0 → piscada de tela (erro)
+        self.escudo_timer = 0   # > 0 → escudo da nave (acerto)
+        self.ast_empurrado = False  # animação de recuo do asteroide
+
+        self._calcular_layout()
+
+    # -------------------------------------------------------------- layout
+
+    def _calcular_layout(self):
+        self.rects_alt = []
+        if self.indice >= len(self.perguntas):
+            return
+        pergunta = self.perguntas[self.indice]
+        x  = 50
+        lw = LARGURA - 100
+        y  = self.PAINEL_Y + 68
+        gap = 7
+
+        for i, alt in enumerate(pergunta["alternativas"]):
+            h = max(44, altura_texto(alt, fonte_alt, lw - 44) + 18)
+            self.rects_alt.append(pygame.Rect(x, y, lw, h))
+            y += h + gap
+
+    # -------------------------------------------------------------- eventos
+
+    def processar_evento(self, evento):
+        if evento.type == pygame.MOUSEMOTION:
+            self._hover(evento.pos)
+
+        elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+            if self.estado == self.S_INICIO:
+                self.estado = self.S_JOGANDO
+
+            elif self.estado == self.S_JOGANDO:
+                for i, r in enumerate(self.rects_alt):
+                    if r.collidepoint(evento.pos):
+                        self._responder(i)
+                        break
+
+            elif self.estado == self.S_FEEDBACK:
+                self._avancar()
+
+            elif self.estado in (self.S_GAMEOVER, self.S_FIM):
+                if self._rect_btn().collidepoint(evento.pos):
+                    self.reiniciar()
+
+    def _hover(self, pos):
+        if self.estado != self.S_JOGANDO:
+            self.hover = -1
+            return
+        self.hover = next((i for i, r in enumerate(self.rects_alt)
+                           if r.collidepoint(pos)), -1)
+
+    def _responder(self, idx):
+        self.selecionada = idx
+        correta = self.perguntas[self.indice]["correta"]
+        if idx == correta:
+            self.pontuacao   += 1
+            self.escudo_timer = 90      # frames de escudo
+            self.ast_empurrado = True
+        else:
+            self.erros   += 1
+            self.ast_vel += self.VEL_AUMENTO
+            self.flash_timer = 18       # frames de flash vermelho
+        self.estado = self.S_FEEDBACK
+
+    def _avancar(self):
+        self.selecionada = -1
+        self.indice += 1
+        if self.indice >= len(self.perguntas):
+            self.estado = self.S_FIM
+        else:
+            self.estado = self.S_JOGANDO
+            self._calcular_layout()
+
+    # -------------------------------------------------------------- update
+
+    def atualizar(self):
+        if self.estado not in (self.S_JOGANDO, self.S_FEEDBACK):
+            return
+
+        # timers de efeito
+        if self.flash_timer  > 0: self.flash_timer  -= 1
+        if self.escudo_timer > 0: self.escudo_timer -= 1
+
+        # rotação do asteroide
+        self.ast_rot += 0.012
+
+        # direção do asteroide → nave (normalizada)
+        dx = NAVE_CX - self.ast_x
+        dy = NAVE_CY - self.ast_y
+        dist = math.hypot(dx, dy)
+
+        if dist < 1:
+            return
+
+        nx = dx / dist
+        ny = dy / dist
+
+        # se acabou de acertar: empurra o asteroide para longe
+        if self.ast_empurrado:
+            self.ast_x -= nx * self.ast_vel * 5
+            self.ast_y -= ny * self.ast_vel * 5
+            self.ast_empurrado = False
+        else:
+            self.ast_x += nx * self.ast_vel
+            self.ast_y += ny * self.ast_vel
+
+        # colisão: game over
+        if dist - self.ast_raio < tamanho_nave() + 4:
+            self.estado = self.S_GAMEOVER
+
+    # -------------------------------------------------------------- desenho
+
+    def desenhar(self):
+        tela.fill(FUNDO)
+        desenhar_estrelas()
+
+        if self.estado == self.S_INICIO:
+            self._d_inicio()
+        elif self.estado in (self.S_JOGANDO, self.S_FEEDBACK):
+            self._d_jogo()
+        elif self.estado == self.S_GAMEOVER:
+            self._d_gameover()
+        elif self.estado == self.S_FIM:
+            self._d_fim()
+
+        pygame.display.flip()
+
+    # ---- tela de início
+
+    def _d_inicio(self):
+        t = fonte_titulo.render("CosmoMind", True, AMARELO)
+        tela.blit(t, t.get_rect(center=(LARGURA//2, 160)))
+
+        sub = fonte_info.render("Responda certo para afastar o asteroide!", True, BRANCO)
+        tela.blit(sub, sub.get_rect(center=(LARGURA//2, 220)))
+
+        info = fonte_pequena.render("Se errar, o asteroide acelera — não deixe ele te atingir!", True, CINZA)
+        tela.blit(info, info.get_rect(center=(LARGURA//2, 255)))
+
+        # preview dos objetos
+        desenhar_nave(LARGURA//2, 350)
+        desenhar_asteroide(LARGURA//2 + 120, 320, 22, 0.3, 1)
+
+        seta = fonte_info.render("←  asteroide", True, LARANJA)
+        tela.blit(seta, (LARGURA//2 + 148, 310))
+
+        nave_l = fonte_info.render("nave  →", True, (100, 180, 255))
+        tela.blit(nave_l, (LARGURA//2 - nave_l.get_width() - 26, 338))
+
+        self._btn("Iniciar jogo", (LARGURA//2, 440))
+
+    # ---- tela de jogo
+
+    def _d_jogo(self):
+        pergunta = self.perguntas[self.indice]
+        correta  = pergunta["correta"]
+
+        # flash de erro (overlay vermelho semitransparente)
+        if self.flash_timer > 0:
+            alfa = int(160 * self.flash_timer / 18)
+            ov = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
+            ov.fill((200, 30, 30, alfa))
+            tela.blit(ov, (0, 0))
+
+        # ---- área de jogo (metade superior) ----
+        self._d_jogo_area(correta)
+
+        # ---- painel de perguntas (metade inferior) ----
+        self._d_painel_pergunta(pergunta, correta)
+
+        # instrução no rodapé
+        if self.estado == self.S_FEEDBACK:
+            d = fonte_pequena.render("Clique para continuar  →", True, CINZA)
+            tela.blit(d, d.get_rect(center=(LARGURA//2, ALTURA - 10)))
+
+    def _d_jogo_area(self, correta):
+        """Desenha a cena 2D: nave + asteroide + HUD."""
+        area_h = self.PAINEL_Y - 4
+        # linha divisória sutil
+        pygame.draw.line(tela, AZUL_ESC, (0, self.PAINEL_Y - 2),
+                         (LARGURA, self.PAINEL_Y - 2), 1)
+
+        # HUD: progresso e pontuação
+        bx, by, bw, bh = 12, 10, 200, 6
+        pygame.draw.rect(tela, CINZA_ESC, (bx, by, bw, bh), border_radius=3)
+        prog = int((self.indice / len(self.perguntas)) * bw)
+        if prog:
+            pygame.draw.rect(tela, AZUL, (bx, by, prog, bh), border_radius=3)
+
+        pts = fonte_pequena.render(f"Pontos: {self.pontuacao}", True, AMARELO)
+        tela.blit(pts, (LARGURA - pts.get_width() - 12, 8))
+
+        num = fonte_pequena.render(
+            f"{self.indice+1}/{len(self.perguntas)}", True, CINZA)
+        tela.blit(num, (bx, by + 12))
+
+        # velocidade do asteroide (indicador de perigo)
+        perigo_txt = f"Vel. asteroide: {self.ast_vel:.1f}x"
+        cor_vel = VERDE if self.ast_vel <= 1.2 else (LARANJA if self.ast_vel <= 2.0 else VERMELHO)
+        vel_s = fonte_pequena.render(perigo_txt, True, cor_vel)
+        tela.blit(vel_s, vel_s.get_rect(center=(LARGURA//2, 24)))
+
+        # nave (fixa no centro da área superior)
+        nave_y_area = area_h // 2 + 10
+        desenhar_nave(NAVE_CX, nave_y_area, escudo_ativo=(self.escudo_timer > 0))
+
+        # asteroide (posição real calculada em atualizar)
+        # projeta a posição y do asteroide para dentro da área de jogo
+        ast_y_vis = self.ast_y
+        if ast_y_vis > area_h - self.ast_raio:
+            ast_y_vis = area_h - self.ast_raio
+        desenhar_asteroide(int(self.ast_x), int(ast_y_vis),
+                           self.ast_raio, self.ast_rot, self.ast_vel)
+
+        # seta de aviso quando asteroide está muito perto
+        dist = math.hypot(NAVE_CX - self.ast_x, nave_y_area - self.ast_y)
+        if dist < 140:
+            av = fonte_pequena.render("⚠  IMPACTO IMINENTE!", True, VERMELHO)
+            tela.blit(av, av.get_rect(center=(LARGURA//2, area_h - 18)))
+
+    def _d_painel_pergunta(self, pergunta, correta):
+        # fundo do painel
+        painel = pygame.Rect(0, self.PAINEL_Y, LARGURA, self.PAINEL_H)
+        pygame.draw.rect(tela, FUNDO_PAINEL, painel)
+        pygame.draw.rect(tela, AZUL_ESC, painel, 1)
+
+        # texto da pergunta
+        lw = LARGURA - 32
+        renderizar_texto(tela, pergunta["pergunta"], fonte_pergunta, BRANCO,
+                         16, self.PAINEL_Y + 10, lw)
+
+        # alternativas
+        for i, (rect, alt) in enumerate(zip(self.rects_alt,
+                                             pergunta["alternativas"])):
+            self._d_alt(i, rect, alt, correta)
+
+    def _d_alt(self, idx, rect, texto, correta):
+        hover     = idx == self.hover
+        sel       = idx == self.selecionada
+        eh_correta = idx == correta
+        feedback  = self.estado == self.S_FEEDBACK
+
+        if feedback:
+            if sel and eh_correta:
+                cf, cb, ct = VERDE_ESC, VERDE, BRANCO
+            elif sel and not eh_correta:
+                cf, cb, ct = VERMELHO_ESC, VERMELHO, BRANCO
+            elif eh_correta:
+                cf, cb, ct = VERDE_ESC, VERDE, BRANCO
+            else:
+                cf, cb, ct = CINZA_ESC, CINZA_ESC, CINZA
+        else:
+            cf = AZUL_ESC if hover else FUNDO_PAINEL
+            cb = AZUL_HOVER if hover else AZUL_ESC
+            ct = BRANCO
+
+        pygame.draw.rect(tela, cf, rect, border_radius=8)
+        pygame.draw.rect(tela, cb, rect, 2, border_radius=8)
+
+        # bolinha com letra
+        cx_ = rect.x + 20
+        cy_ = rect.centery
+        pygame.draw.circle(tela, self.CORES_LETRAS[idx], (cx_, cy_), 12)
+        tela.blit(fonte_alt.render(self.LETRAS[idx], True, BRANCO),
+                  fonte_alt.render(self.LETRAS[idx], True, BRANCO).get_rect(center=(cx_, cy_)))
+
+        # ícone ✓/✗
+        if feedback and (sel or eh_correta):
+            ic  = "✓" if eh_correta else "✗"
+            cic = VERDE if eh_correta else VERMELHO
+            is_ = fonte_alt.render(ic, True, cic)
+            tela.blit(is_, is_.get_rect(midright=(rect.right - 10, cy_)))
+
+        # texto
+        tw = rect.width - 50
+        renderizar_texto(tela, texto, fonte_alt, ct,
+                         rect.x + 38,
+                         rect.centery - altura_texto(texto, fonte_alt, tw)//2,
+                         tw)
+
+    # ---- game over
+
+    def _d_gameover(self):
+        # flash do impacto
+        ov = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
+        ov.fill((220, 50, 30, 80))
+        tela.blit(ov, (0, 0))
+
+        desenhar_asteroide(NAVE_CX, NAVE_CY, 40, 0.8, self.ast_vel)
+
+        t = fonte_titulo.render("IMPACTO!", True, VERMELHO)
+        tela.blit(t, t.get_rect(center=(LARGURA//2, 160)))
+
+        s = fonte_info.render(
+            f"Pontos: {self.pontuacao}  •  Erros: {self.erros}", True, BRANCO)
+        tela.blit(s, s.get_rect(center=(LARGURA//2, 220)))
+
+        msg = fonte_info.render("O asteroide te alcançou...", True, LARANJA)
+        tela.blit(msg, msg.get_rect(center=(LARGURA//2, 265)))
+
+        self._btn("Tentar novamente", (LARGURA//2, 340))
+
+    # ---- fim (todas perguntas respondidas)
+
+    def _d_fim(self):
+        total = len(self.perguntas)
+        pct   = self.pontuacao / total * 100
+
+        if pct == 100: msg, cm = "Piloto perfeito! Nenhum asteroide te pegou!", AMARELO
+        elif pct >= 70: msg, cm = "Ótima pilotagem, astronauta!", VERDE
+        elif pct >= 50: msg, cm = "Missão concluída, mas com danos...", LARANJA
+        else:           msg, cm = "A nave sofreu bastante. Estude mais!", VERMELHO
+
+        t = fonte_titulo.render("Missão concluída!", True, BRANCO)
+        tela.blit(t, t.get_rect(center=(LARGURA//2, 130)))
+
+        pl = fonte_titulo.render(f"{self.pontuacao} / {total}", True, AMARELO)
+        tela.blit(pl, pl.get_rect(center=(LARGURA//2, 210)))
+
+        p2 = fonte_info.render(f"{pct:.0f}% de aproveitamento  •  {self.erros} erro(s)", True, CINZA)
+        tela.blit(p2, p2.get_rect(center=(LARGURA//2, 265)))
+
+        ms = fonte_info.render(msg, True, cm)
+        tela.blit(ms, ms.get_rect(center=(LARGURA//2, 315)))
+
+        self._btn("Jogar novamente", (LARGURA//2, 400))
+
+    # ---- botão genérico
+
+    def _btn(self, texto, centro):
+        r = pygame.Rect(0, 0, 230, 48)
+        r.center = centro
+        mouse = pygame.mouse.get_pos()
+        cor = AZUL_HOVER if r.collidepoint(mouse) else AZUL
+        pygame.draw.rect(tela, cor, r, border_radius=11)
+        s = fonte_info.render(texto, True, BRANCO)
+        tela.blit(s, s.get_rect(center=r.center))
+
+    def _rect_btn(self):
+        r = pygame.Rect(0, 0, 230, 48)
+        if self.estado == self.S_GAMEOVER:
+            r.center = (LARGURA//2, 340)
+        else:
+            r.center = (LARGURA//2, 400)
+        return r
+
+
+# ================================================================== main
+
+def main():
+    jogo = CosmoMind()
+    while True:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
+                pygame.quit(); sys.exit()
+            jogo.processar_evento(ev)
+
+        jogo.atualizar()
+        jogo.desenhar()
+        relogio.tick(60)
+
+if __name__ == "__main__":
+    main()
