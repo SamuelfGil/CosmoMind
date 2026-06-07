@@ -1,27 +1,28 @@
-def calcular_pontos(pontos_atual, pontos_ganhos):
-    """Soma os pontos ganhos à pontuação atual."""
-    return pontos_atual + pontos_ganhos
+from config import fonte_alt
+
+def quebrar_linhas(texto, fonte, largura_max):
+    palavras = texto.split(" ")
+    linhas, atual = [], ""
+    for p in palavras:
+        teste = atual + (" " if atual else "") + p
+        if fonte.size(teste)[0] <= largura_max:
+            atual = teste
+        else:
+            if atual:
+                linhas.append(atual)
+            atual = p
+    if atual:
+        linhas.append(atual)
+    return linhas
 
 
-def tomar_dano(vida_atual, dano):
-    """Reduz a vida atual com base no dano recebido."""
-    return vida_atual - dano
+def renderizar_texto(surface, texto, fonte, cor, x, y, largura_max):
+    linhas = quebrar_linhas(texto, fonte, largura_max)
+    h = fonte.get_linesize()
+    for i, l in enumerate(linhas):
+        surface.blit(fonte.render(l, True, cor), (x, y + i * h))
+    return len(linhas) * h
 
 
-def jogador_perdeu(vidas):
-    """Indica se o jogador ficou sem vidas."""
-    return vidas <= 0
-
-
-def limitar_valor(valor, minimo, maximo):
-    """Mantém um valor dentro do intervalo [minimo, maximo]."""
-    if valor < minimo:
-        return minimo
-    if valor > maximo:
-        return maximo
-    return valor
-
-
-def verificar_colisao(retangulo_1, retangulo_2):
-    """Verifica sobreposição entre dois retângulos do Pygame."""
-    return retangulo_1.colliderect(retangulo_2)
+def altura_texto(texto, fonte, largura_max):
+    return len(quebrar_linhas(texto, fonte, largura_max)) * fonte.get_linesize()
