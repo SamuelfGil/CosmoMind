@@ -2,14 +2,18 @@
 
 Esta pasta contém os módulos principais do jogo.
 
+---
+
 ## Arquivos
 
-- `jogo.py`: loop principal, eventos, atualização e renderização.
-- `config.py`: constantes globais (tela, cores, caminhos, FPS).
-- `funcoes.py`: funções auxiliares de regra e lógica.
-- `sprites.py`: carregamento e recorte de spritesheet.
-- `dados.py`: leitura e gravação de dados (recorde/ranking).
+* **`jogo.py`**: Contém o loop principal do jogo, gerenciamento de eventos, atualização de estados e renderização dos painéis e telas.
+* **`config.py`**: Centraliza as constantes globais do projeto, como dimensões da tela, paleta de cores, instâncias de fontes adaptadas e configurações de FPS.
+* **`funcoes.py`**: Concentra as funções auxiliares e utilitárias de regra e lógica (como o sistema de quebra e renderização dinâmica de texto).
+* **`sprites.py`**: Responsável pelas entidades visuais do jogo, gerenciando o comportamento e desenho das estrelas de fundo, da nave do jogador e dos asteroides mecânicos.
+* **`dados.py`**: Cuida da persistência de dados, sendo responsável pela leitura e gravação do arquivo JSON que alimenta o banco de perguntas.
+
+---
 
 ## Dica de evolução
 
-Quando o projeto crescer, mantenha módulos pequenos e separados por responsabilidade.
+> 💡 **Mantenha o código limpo:** Quando o projeto crescer, continue dividindo as responsabilidades em módulos pequenos e especializados. Isso facilita a manutenção, a caça a bugs e a implementação de novas mecânicas espaciais no futuro!
