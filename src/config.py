@@ -1,15 +1,11 @@
 import pygame
 import pygame.freetype
 
-# --- Inicialização básica necessária para as fontes ---
 pygame.init()
 pygame.freetype.init()
-
-# --- Dimensões ---
 LARGURA = 800
 ALTURA = 600
 
-# --- Cores ---
 FUNDO = (10, 10, 30)
 FUNDO_PAINEL = (15, 15, 45)
 AZUL_ESC = (25, 35, 70)
@@ -25,7 +21,6 @@ BRANCO = (240, 240, 255)
 CINZA = (120, 130, 160)
 CINZA_ESC = (55, 60, 85)
 
-# --- Adaptador de Fonte ---
 class AdaptadorFonte:
     def __init__(self, nome, tamanho, bold=False):
         self.font = pygame.freetype.SysFont(nome, tamanho)
@@ -43,7 +38,6 @@ class AdaptadorFonte:
     def get_linesize(self):
         return int(self.tamanho * 1.2)
 
-# --- Instâncias de Fontes ---
 fonte_titulo = AdaptadorFonte("Arial", 34, bold=True)
 fonte_pergunta = AdaptadorFonte("Arial", 19, bold=True)
 fonte_alt = AdaptadorFonte("Arial", 16)

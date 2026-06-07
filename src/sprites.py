@@ -3,7 +3,6 @@ import random
 import math
 from config import LARGURA, ALTURA, LARANJA
 
-# --- Configuração das imagens das estrelas em cache ---
 IMAGEM_BASE = pygame.Surface((15, 15), pygame.SRCALPHA)
 pygame.draw.circle(IMAGEM_BASE, (255, 255, 100), (7, 7), 6)
 
@@ -30,12 +29,8 @@ class Estrela:
         imagem_certa = IMAGENS_POR_VELOCIDADE[self.velocidade]
         superficie.blit(imagem_certa, (self.x, self.y))
 
-
-# Inicializa a lista com 80 estrelas dinâmicas
 LISTA_ESTRELAS = [Estrela() for _ in range(80)]
 
-
-# --- Funções da Nave ---
 def pontos_nave(cx, cy, tamanho=18):
     return [
         (cx, cy - tamanho),
@@ -64,7 +59,6 @@ def desenhar_nave(superficie, cx, cy, escudo_ativo=False):
     pygame.draw.polygon(superficie, LARANJA, chama)
 
 
-# --- Mecânica do Asteroide ---
 class AsteroideMecanica:
     def __init__(self, x, y, raio=26):
         self.raio = raio
