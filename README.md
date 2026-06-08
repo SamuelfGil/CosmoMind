@@ -6,10 +6,10 @@ Este repositório é um template para os grupos da disciplina. A proposta é com
 
 ## Integrantes do grupo
 
-- Nome do integrante 1
-- Nome do integrante 2
-- Nome do integrante 3
-- Nome do integrante 4
+- Alexandre Sampaio Guimarães Ribeiro
+- Lucas Araújo Asth
+- Samuel Abreu Silva de Oliveira Bispo
+- Samuel Ferreira Gil
 
 ## Estrutura do projeto
 
@@ -22,51 +22,34 @@ Este repositório é um template para os grupos da disciplina. A proposta é com
 
 ## Descrição do jogo
 
-Descreva brevemente a ideia principal do jogo.
-
-Exemplo:
-
-> O jogo consiste em controlar um personagem que deve coletar moedas e evitar obstáculos. O jogador ganha pontos ao coletar itens e perde vidas ao colidir com obstáculos. A partida termina quando o tempo acaba ou quando o jogador perde todas as vidas.
+No jogo CosmoMind, o jogador estará no comando de uma nave espacial em um ambiente estilo Arcade interativo. Para conseguir atirar lasers e destruir os asteroides que estão vindo em sua direção com velocidades dinâmicas, o usuário precisará responder corretamente a perguntas conceituais atreladas a cada obstáculo. Caso a pergunta seja respondida incorretamente, o asteroide ganhará velocidade extra na tela.
 
 ## Objetivo do jogador
 
-Explique o que o jogador precisa fazer para vencer ou avançar no jogo.
-
-Exemplo:
-
-> O objetivo é coletar a maior quantidade possível de itens antes que o tempo acabe, evitando colisões com os obstáculos.
+O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e alcançar a maior pontuação possível dentro do ranking local, acumulando pontos ao eliminar os alvos através do acerto das perguntas propostas.
 
 ## Regras do jogo
 
-Liste as principais regras do jogo.
-
-Exemplo:
-
-- O jogador se movimenta usando as setas do teclado.
-- Cada item coletado aumenta a pontuação.
-- Colidir com um obstáculo reduz a quantidade de vidas.
-- A partida termina quando o jogador perde todas as vidas ou quando o tempo acaba.
+- O jogador inicia a partida com 10 pontos de vida.
+- O contato da nave com um asteroide associado a uma questão não respondida ou respondida incorretamente fará o jogador perder no mínimo 1 ponto de vida (podendo perder mais dependendo da dificuldade da pergunta).
+- Ao acertar uma sequência de 5 respostas corretas, o jogador recupera 1 ponto de vida (limitado ao máximo de 10).
+- Os asteroides cujas perguntas associadas forem respondidas incorretamente ganharão velocidade extra na tela.
+- O jogador ganhará pontos após a eliminação de cada asteroide, variando de acordo com a dificuldade da pergunta relacionada.
+- A partida é encerrada automaticamente quando o número de pontos de vida chegar a zero ou quando o comando voluntário de saída for acionado.
 
 ## Controles
 
-Informe as teclas ou comandos utilizados no jogo.
-
-Exemplo:
-
-- Seta para cima: mover para cima
-- Seta para baixo: mover para baixo
-- Seta para esquerda: mover para esquerda
-- Seta para direita: mover para direita
-- Espaço: realizar ação
-- ESC: sair do jogo
+- Teclado Numérico / Seleção: Servirá para selecionar o asteroide ou a pergunta específica que o usuário deseja tentar responder.
+- Caixa de Entrada de Texto: Digitação manual da resposta ou de comandos do sistema (como digitar "SAIR" para encerrar o jogo).
+- ENTER: Envia a resposta final digitada ou os comandos do sistema. Se a resposta estiver correta, a nave dispara um tiro laser que destrói o asteroide selecionado; caso contrário, o tiro erra o alvo.
 
 ## Como executar o projeto
 
 ### 1. Clonar o repositório
 
 ```bash
-git clone LINK_DO_REPOSITORIO
-cd NOME_DA_PASTA
+git clone [LINK_DO_REPOSITORIO](https://github.com/SamuelfGil/CosmoMind.git)
+cd tests
 pip install -r requirements.txt
 python main.py
 ```
