@@ -48,9 +48,9 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 ### 1. Clonar o repositório
 
 ```bash
-git clone [LINK_DO_REPOSITORIO](https://github.com/SamuelfGil/CosmoMind.git)
-cd src
-pip install -r requirements.txt
+git clone (https://github.com/SamuelfGil/CosmoMind.git)
+cd CosmoMind
+pip install pygame-ce
 python main.py
 ```
 
