@@ -1,4 +1,4 @@
-from config import fonte_alt
+from src.config import fonte_alt
 
 def quebrar_linhas(texto, fonte, largura_max):
     palavras = texto.split(" ")

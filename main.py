@@ -1,7 +1,7 @@
 import pygame
 import sys
-from config import LARGURA, ALTURA
-from jogo import CosmoMind
+from src.config import LARGURA, ALTURA
+from src.jogo import CosmoMind
 
 
 def main():

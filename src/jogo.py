@@ -1,10 +1,10 @@
 import pygame
 import random
 import math
-from config import *
-from funcoes import renderizar_texto, altura_texto
-from dados import carregar_perguntas
-from sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica
+from src.config import *
+from src.funcoes import renderizar_texto, altura_texto
+from src.dados import carregar_perguntas
+from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica,Tiro
 
 class CosmoMind:
     S_INICIO = "inicio"
@@ -44,7 +44,10 @@ class CosmoMind:
 
         self.flash_timer = 0
         self.escudo_timer = 0
-        self.ast_empurrado = False
+        
+        # Novas variáveis de controle dos disparos e destruição
+        self.tiros = []
+        self.asteroide_destruido = False
 
         self._calcular_layout()
 
@@ -89,19 +92,32 @@ class CosmoMind:
     def _responder(self, idx):
         self.selecionada = idx
         correta = self.perguntas[self.indice]["correta"]
+        
         if idx == correta:
             self.pontuacao += 1
             self.escudo_timer = 90
-            self.ast_empurrado = True
+            
+            # Instancia o tiro saindo da Nave em direção ao centro do Asteroide
+            nave_x = LARGURA // 2
+            nave_y = (self.PAINEL_Y // 2 + 10)
+            novo_tiro = Tiro(nave_x, nave_y, self.asteroide.x, self.asteroide.y)
+            self.tiros.append(novo_tiro)
         else:
             self.erros += 1
             self.ast_vel += self.VEL_AUMENTO
             self.flash_timer = 18
+            
         self.estado = self.S_FEEDBACK
 
     def _avancar(self):
         self.selecionada = -1
         self.indice += 1
+        
+        # Sempre que avançar, se o anterior foi explodido, criamos outro no topo
+        if self.asteroide_destruido:
+            self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=24)
+            self.asteroide_destruido = False
+            
         if self.indice >= len(self.perguntas):
             self.estado = self.S_FIM
         else:
@@ -112,6 +128,16 @@ class CosmoMind:
         for estrela in LISTA_ESTRELAS:
             estrela.mover()
 
+        # Atualiza os temporizadores visuais
+        if self.flash_timer > 0: self.flash_timer -= 1
+        if self.escudo_timer > 0: self.escudo_timer -= 1
+
+        # Move e limpa os lasers disparados
+        for tiro in self.tiros[:]:
+            tiro.mover()
+            if not tiro.ativo:
+                self.tiros.remove(tiro)
+
         if self.estado not in (self.S_JOGANDO, self.S_FEEDBACK):
             return
 
@@ -120,25 +146,32 @@ class CosmoMind:
         NAVE_CX = LARGURA // 2
         nave_y_area = (self.PAINEL_Y // 2 + 10)
 
-        dx = NAVE_CX - self.asteroide.x
-        dy = nave_y_area - self.asteroide.y
-        dist = math.hypot(dx, dy)
+        # Se o asteroide não foi explodido, ele continua avançando na nave
+        if not self.asteroide_destruido:
+            dx = NAVE_CX - self.asteroide.x
+            dy = nave_y_area - self.asteroide.y
+            dist = math.hypot(dx, dy)
 
-        if dist < 1: return
+            if dist >= 1:
+                nx = dx / dist
+                ny = dy / dist
+                self.asteroide.x += nx * self.ast_vel
+                self.asteroide.y += ny * self.ast_vel
 
-        nx = dx / dist
-        ny = dy / dist
+            # Detecção de colisão do Asteroide com a Nave (Game Over)
+            if dist - self.asteroide.raio < 18 + 4:
+                self.estado = self.S_GAMEOVER
 
-        if self.ast_empurrado:
-            self.asteroide.x -= nx * self.ast_vel * 5
-            self.asteroide.y -= ny * self.ast_vel * 5
-            self.ast_empurrado = False
-        else:
-            self.asteroide.x += nx * self.ast_vel
-            self.asteroide.y += ny * self.ast_vel
-
-        if dist - self.asteroide.raio < 18 + 4:
-            self.estado = self.S_GAMEOVER
+        # Verifica colisões de cada laser com o asteroide ativo
+        if not self.asteroide_destruido:
+            for tiro in self.tiros[:]:
+                dist_tiro = math.hypot(tiro.x - self.asteroide.x, tiro.y - self.asteroide.y)
+                # Se colidir com o raio do asteroide, quebra ele
+                if dist_tiro < (tiro.raio + self.asteroide.raio):
+                    self.asteroide_destruido = True
+                    if tiro in self.tiros:
+                        self.tiros.remove(tiro)
+                    break
 
     def desenhar(self):
         self.tela.fill(FUNDO)
@@ -159,10 +192,10 @@ class CosmoMind:
         t = fonte_titulo.render("CosmoMind", True, AMARELO)
         self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 160)))
 
-        sub = fonte_info.render("Responda certo para afastar o asteroide!", True, BRANCO)
+        sub = fonte_info.render("Responda certo para destruir o asteroide!", True, BRANCO)
         self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 220)))
 
-        info = fonte_pequena.render("Se errar, o asteroide acelera — não deixe ele te atingir!", True, CINZA)
+        info = fonte_pequena.render("Se errar, o asteroide acelera — destrua-o antes do impacto!", True, CINZA)
         self.tela.blit(info, info.get_rect(center=(LARGURA // 2, 255)))
 
         desenhar_nave(self.tela, LARGURA // 2, 350)
@@ -220,19 +253,25 @@ class CosmoMind:
         nave_y_area = area_h // 2 + 10
         desenhar_nave(self.tela, NAVE_CX, nave_y_area, escudo_ativo=(self.escudo_timer > 0))
 
-        ast_y_vis = self.asteroide.y
-        if ast_y_vis > area_h - self.asteroide.raio:
-            ast_y_vis = area_h - self.asteroide.raio
+        # Desenha os tiros disparados pela nave
+        for tiro in self.tiros:
+            tiro.desenhar(self.tela)
 
-        backup_y = self.asteroide.y
-        self.asteroide.y = ast_y_vis
-        self.asteroide.desenhar(self.tela, self.ast_rot)
-        self.asteroide.y = backup_y
+        # Desenha o asteroide apenas se ele não estiver destruído
+        if not self.asteroide_destruido:
+            ast_y_vis = self.asteroide.y
+            if ast_y_vis > area_h - self.asteroide.raio:
+                ast_y_vis = area_h - self.asteroide.raio
 
-        dist = math.hypot(NAVE_CX - self.asteroide.x, nave_y_area - self.asteroide.y)
-        if dist < 140:
-            av = fonte_pequena.render("! IMPACTO IMINENTE!", True, VERMELHO)
-            self.tela.blit(av, av.get_rect(center=(LARGURA // 2, area_h - 18)))
+            backup_y = self.asteroide.y
+            self.asteroide.y = ast_y_vis
+            self.asteroide.desenhar(self.tela, self.ast_rot)
+            self.asteroide.y = backup_y
+
+            dist = math.hypot(NAVE_CX - self.asteroide.x, nave_y_area - self.asteroide.y)
+            if dist < 140:
+                av = fonte_pequena.render("! IMPACTO IMINENTE!", True, VERMELHO)
+                self.tela.blit(av, av.get_rect(center=(LARGURA // 2, area_h - 18)))
 
     def _d_painel_pergunta(self, pergunta, correta):
         painel = pygame.Rect(0, self.PAINEL_Y, LARGURA, self.PAINEL_H)

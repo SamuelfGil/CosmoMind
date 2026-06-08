@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-from config import LARGURA, ALTURA, LARANJA
+from src.config import LARGURA, ALTURA, LARANJA, AMARELO_TIRO, VELOCIDADE_TIRO
 
 IMAGEM_BASE = pygame.Surface((15, 15), pygame.SRCALPHA)
 pygame.draw.circle(IMAGEM_BASE, (255, 255, 100), (7, 7), 6)
@@ -78,3 +78,35 @@ class AsteroideMecanica:
 
         pygame.draw.polygon(superficie, (90, 50, 20), pontos)
         pygame.draw.polygon(superficie, (139, 69, 19), pontos, 2)
+
+
+class Tiro:
+    def __init__(self, x, y, destino_x, destino_y):
+        self.x = float(x)
+        self.y = float(y)
+        self.raio = 4
+        self.ativo = True
+
+        # Calcula o vetor de direção da nave até o asteroide
+        dx = destino_x - x
+        dy = destino_y - y
+        distancia = math.hypot(dx, dy)
+
+        if distancia == 0:
+            self.dx = 0
+            self.dy = -1
+        else:
+            self.dx = dx / distancia
+            self.dy = dy / distancia
+
+    def mover(self):
+        self.x += self.dx * VELOCIDADE_TIRO
+        self.y += self.dy * VELOCIDADE_TIRO
+
+        # Desativa o tiro se ele sair dos limites da tela
+        if self.x < 0 or self.x > LARGURA or self.y < 0 or self.y > ALTURA:
+            self.ativo = False
+
+    def desenhar(self, superficie):
+        pygame.draw.circle(superficie, AMARELO_TIRO, (int(self.x), int(self.y)), self.raio)
+        pygame.draw.circle(superficie, LARANJA, (int(self.x), int(self.y)), self.raio + 2, 1)

@@ -48,5 +48,105 @@
             "Converter código-fonte em linguagem de máquina."
         ],
         "correta": 0
+    },
+        {
+        "pergunta": "O que é um algoritmo?",
+        "alternativas": [
+            "Uma linguagem de programação",
+            "Uma sequência lógica e finita de passos para resolver um problema",
+            "Uma peça de hardware do computador",
+            "Um erro que ocorre durante a compilação do código"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "Para que serve a estrutura condicional 'if/else' (se/senão)?",
+        "alternativas": [
+            "Para repetir um bloco de código infinitamente",
+            "Para armazenar dados permanentemente na memória",
+            "Para executar diferentes blocos de código dependendo de uma condição ser verdadeira ou falsa",
+            "Para declarar variáveis no início do programa"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "Qual estrutura de repetição é mais adequada quando já sabemos o número exato de vezes que queremos repetir um bloco de código?",
+        "alternativas": [
+            "while (enquanto)",
+            "if/else (se/senão)",
+            "for (para)",
+            "switch/case (escolha/caso)"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "Qual é a principal característica de um laço 'while' (enquanto)?",
+        "alternativas": [
+            "Ele executa apenas uma vez, independentemente da condição.",
+            "Ele repete o bloco de código enquanto uma condição especificada for verdadeira.",
+            "Ele não permite o uso de variáveis dentro do seu escopo.",
+            "Ele só pode ser usado para realizar operações matemáticas."
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "O que é recursividade em programação?",
+        "alternativas": [
+            "Um conceito onde uma função chama a si mesma para resolver partes menores do mesmo problema.",
+            "Um laço 'for' colocado dentro de outro laço 'for'.",
+            "Um erro lógico que faz o computador travar.",
+            "O processo de converter um código-fonte para linguagem de máquina."
+        ],
+        "correta": 0
+    },
+    {
+        "pergunta": "O que acontece se a condição de parada de um laço de repetição (como o 'while') nunca for alcançada?",
+        "alternativas": [
+            "O laço é ignorado pelo compilador.",
+            "O programa finaliza automaticamente com sucesso.",
+            "As variáveis são redefinidas para zero.",
+            "O programa entra em um loop infinito, executando indefinidamente."
+        ],
+        "correta": 3
+    },
+    {
+        "pergunta": "Em relação aos tipos de dados, qual tipo é normalmente usado para controlar uma estrutura 'if' (verdadeiro ou falso)?",
+        "alternativas": [
+            "Inteiro (Int)",
+            "Texto (String)",
+            "Booleano (Boolean)",
+            "Ponto Flutuante (Float)"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "Qual é a principal vantagem de utilizarmos funções (ou métodos) na criação de algoritmos?",
+        "alternativas": [
+            "Deixar a execução do código mais lenta e segura.",
+            "Evitar a repetição de código, facilitando a organização e a manutenção.",
+            "Eliminar a necessidade de usar variáveis.",
+            "Impedir que outros programadores leiam o código."
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "O que é uma variável?",
+        "alternativas": [
+            "Um comando que altera a velocidade do processador.",
+            "Um espaço reservado na memória para armazenar um dado que pode mudar durante a execução do programa.",
+            "Uma palavra reservada da linguagem que não pode ser modificada.",
+            "Um laço de repetição que varia seu número de passos."
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "Ao usar a recursividade, o que é fundamental incluir na função para evitar um loop infinito?",
+        "alternativas": [
+            "Uma variável do tipo string.",
+            "Um laço 'for'.",
+            "Um caso base (ou condição de parada).",
+            "Uma função de impressão (print/console.log)."
+        ],
+        "correta": 2
     }
 ]

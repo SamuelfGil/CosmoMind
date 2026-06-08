@@ -20,7 +20,8 @@ LARANJA = (255, 140, 30)
 BRANCO = (240, 240, 255)
 CINZA = (120, 130, 160)
 CINZA_ESC = (55, 60, 85)
-
+AMARELO_TIRO=(255, 255, 150)
+VELOCIDADE_TIRO = 8
 class AdaptadorFonte:
     def __init__(self, nome, tamanho, bold=False):
         self.font = pygame.freetype.SysFont(nome, tamanho)
