@@ -39,8 +39,8 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 
 ## Controles
 
-- Teclado Numérico / Seleção: Servirá para selecionar o asteroide ou a pergunta específica que o usuário deseja tentar responder.
-- Caixa de Entrada de Texto: Digitação manual da resposta ou de comandos do sistema (como digitar "SAIR" para encerrar o jogo).
+- Mouse / Seleção: Servirá para selecionar o asteroide ou a pergunta específica que o usuário deseja tentar responder.
+- Teclado: Servirá para a pessoa inserir seu nickname e sair do jogo.
 - ENTER: Envia a resposta final digitada ou os comandos do sistema. Se a resposta estiver correta, a nave dispara um tiro laser que destrói o asteroide selecionado; caso contrário, o tiro erra o alvo.
 
 ## Como executar o projeto
