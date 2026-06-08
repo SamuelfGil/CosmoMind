@@ -1,7 +1,9 @@
 import os
 import json
 
+# Função pra ler o JSON de perguntas ou criar um do zero se o arquivo sumir
 def carregar_perguntas(caminho="perguntas.json"):
+    # Se o arquivo não existir, cria um com perguntas padrão pro jogo não quebrar
     if not os.path.exists(caminho):
         perguntas_padrao = [
             {"pergunta": "O que é um algoritmo?",
@@ -32,9 +34,11 @@ def carregar_perguntas(caminho="perguntas.json"):
                               "Converter código-fonte em linguagem de máquina."],
              "correta": 0},
         ]
+        # Salva as perguntas padrão num arquivo JSON bem formatado
         with open(caminho, "w", encoding="utf-8") as f:
             json.dump(perguntas_padrao, f, ensure_ascii=False, indent=4)
         return perguntas_padrao
 
+    # Se o arquivo já existir, só lê e joga os dados pro jogo usar
     with open(caminho, "r", encoding="utf-8") as f:
         return json.load(f)
