@@ -49,13 +49,14 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 
 ```bash
 git clone [LINK_DO_REPOSITORIO](https://github.com/SamuelfGil/CosmoMind.git)
-cd tests
+cd src
 pip install -r requirements.txt
 python main.py
 ```
 
 ## Como executar os testes
 
+(Criamos uma pasta chamada SEMANA_2, onde estão as partes de cada integrante do grupo.)
 ```bash
 python -m pytest
 ```
