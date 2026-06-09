@@ -10,6 +10,7 @@ from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
 class CosmoMind:
     # Os estados possíveis da nossa máquina de estados do jogo
     S_INICIO = "inicio"
+    S_NICKNAME = "nickname"
     S_JOGANDO = "jogando"
     S_FEEDBACK = "feedback"
     S_GAMEOVER = "gameover"
@@ -43,6 +44,9 @@ class CosmoMind:
         self.hover = -1
         self.selecionada = -1
         self.erros = 0
+
+        self.nickname = ""
+        self.max_caracteres = 12
 
         # Spawna o asteroide no canto superior direito
         self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=24)
@@ -79,9 +83,24 @@ class CosmoMind:
         # Escuta os movimentos e cliques do jogador
         if evento.type == pygame.MOUSEMOTION:
             self._hover(evento.pos)
+        elif evento.type == pygame.KEYDOWN:
+            if self.estado == self.S_NICKNAME:
+                if evento.key == pygame.K_BACKSPACE:
+                    self.nickname = self.nickname[:-1]
+                elif evento.key == pygame.K_RETURN:
+                    if len(self.nickname.strip()) > 0:
+                        self.estado = self.S_JOGANDO
+                else:
+                    if len(self.nickname) < self.max_caracteres:
+                        if evento.unicode.isalnum() or evento.unicode == " ":
+                            self.nickname += evento.unicode
         elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             if self.estado == self.S_INICIO:
-                self.estado = self.S_JOGANDO
+                self.estado = self.S_NICKNAME
+            elif self.estado == self.S_NICKNAME:
+                if self._rect_btn_nickname().collidepoint(evento.pos):
+                    if len(self.nickname.strip()) > 0:
+                        self.estado = self.S_JOGANDO
             elif self.estado == self.S_JOGANDO:
                 # Checa se o clique aconteceu dentro de algum botão de alternativa
                 for i, r in enumerate(self.rects_alt):
@@ -193,6 +212,8 @@ class CosmoMind:
 
         if self.estado == self.S_INICIO:
             self._d_inicio()
+        elif self.estado == self.S_NICKNAME:
+            self._d_nickname()
         elif self.estado in (self.S_JOGANDO, self.S_FEEDBACK):
             self._d_jogo()
         elif self.estado == self.S_GAMEOVER:
@@ -224,8 +245,43 @@ class CosmoMind:
 
         self._btn("Iniciar jogo", (LARGURA // 2, 440))
 
+    def _d_nickname(self):
+        t = fonte_titulo.render("Identificação do Piloto", True, AMARELO)
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 160)))
+
+        sub = fonte_info.render("Digite seu nickname para o painel de comando:", True, BRANCO)
+        self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 220)))
+
+        caixa_texto = pygame.Rect(0, 0, 340, 50)
+        caixa_texto.center = (LARGURA // 2, 290)
+        
+        cor_borda = VERDE if len(self.nickname.strip()) > 0 else AZUL
+        pygame.draw.rect(self.tela, FUNDO_PAINEL, caixa_texto, border_radius=8)
+        pygame.draw.rect(self.tela, cor_borda, caixa_texto, 2, border_radius=8)
+
+        if self.nickname == "":
+            txt_surf = fonte_info.render("Sua Tag de Voo...", True, CINZA)
+        else:
+            txt_surf = fonte_info.render(self.nickname, True, BRANCO)
+            
+        self.tela.blit(txt_surf, txt_surf.get_rect(center=caixa_texto.center))
+
+        cont_txt = f"{len(self.nickname)}/{self.max_caracteres}"
+        cont_surf = fonte_pequena.render(cont_txt, True, CINZA)
+        self.tela.blit(cont_surf, (caixa_texto.right - cont_surf.get_width(), caixa_texto.bottom + 6))
+
+        if len(self.nickname.strip()) > 0:
+            self._btn("Confirmar Entrada", (LARGURA // 2, 410))
+            dica_enter = fonte_pequena.render("ou pressione ENTER", True, CINZA)
+            self.tela.blit(dica_enter, dica_enter.get_rect(center=(LARGURA // 2, 452)))
+
+    def _rect_btn_nickname(self):
+        r = pygame.Rect(0, 0, 230, 48)
+        r.center = (LARGURA // 2, 410)
+        return r
+
     def _d_jogo(self):
-        # Render da área de jogo ativa
+        # Render da área de jogo activa
         pergunta = self.perguntas[self.indice]
         correta = pergunta["correta"]
 
@@ -261,6 +317,9 @@ class CosmoMind:
 
         num = fonte_pequena.render(f"{self.indice + 1}/{len(self.perguntas)}", True, CINZA)
         self.tela.blit(num, (bx, by + 12))
+
+        nick_txt = fonte_pequena.render(f"Piloto: {self.nickname}", True, BRANCO)
+        self.tela.blit(nick_txt, (bx, by + 28))
 
         perigo_txt = f"Vel. asteroide: {self.ast_vel:.1f}x"
         cor_vel = VERDE if self.ast_vel <= 1.2 else (LARANJA if self.ast_vel <= 2.0 else VERMELHO)
@@ -379,7 +438,7 @@ class CosmoMind:
 
         # Mensagens baseadas na porcentagem de acertos do jogador
         if pct == 100:
-            msg, cm = "Piloto perfeito! Nenhum asteroide te pegou!", AMARELO
+            msg, cm = f"Piloto perfeito! Nenhum asteroide te pegou, {self.nickname}!", AMARELO
         elif pct >= 70:
             msg, cm = "Ótima pilotagem, astronauta!", VERDE
         elif pct >= 50:
