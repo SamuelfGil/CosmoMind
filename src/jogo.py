@@ -5,7 +5,7 @@ from src.config import *
 from src.funcoes import renderizar_texto, altura_texto
 from src.dados import carregar_perguntas, carregar_recorde, salvar_recorde, salvar_no_ranking, carregar_ranking
 from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
-
+from src.audio import audio
 class CosmoMind:
     S_INICIO = "inicio"
     S_NICKNAME = "nickname"
@@ -108,6 +108,7 @@ class CosmoMind:
                     self.nickname = self.nickname[:-1]
                 elif evento.key == pygame.K_RETURN:
                     if len(self.nickname.strip()) > 0:
+                        audio.tocar(audio.clique)
                         self.estado = self.S_JOGANDO
                 else:
                     if len(self.nickname) < self.max_caracteres:
@@ -115,10 +116,12 @@ class CosmoMind:
                             self.nickname += evento.unicode
         elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             if self.estado == self.S_INICIO:
+                audio.tocar(audio.clique)
                 self.estado = self.S_NICKNAME
             elif self.estado == self.S_NICKNAME:
                 if self._rect_btn_nickname().collidepoint(evento.pos):
                     if len(self.nickname.strip()) > 0:
+                        audio.tocar(audio.clique)
                         self.estado = self.S_JOGANDO
             elif self.estado == self.S_JOGANDO:
                 for i, r in enumerate(self.rects_alt):
@@ -129,11 +132,13 @@ class CosmoMind:
                 self._avancar()
             elif self.estado in (self.S_GAMEOVER, self.S_FIM):
                 if self._rect_btn().collidepoint(evento.pos):
+                    audio.tocar(audio.clique)
                     salvar_recorde(self.pontuacao)
                     salvar_no_ranking(self.nickname, self.pontuacao)
                     self.estado = self.S_RANKING
             elif self.estado == self.S_RANKING:
                 if self._rect_btn_ranking().collidepoint(evento.pos):
+                    audio.tocar(audio.clique)
                     self.reiniciar()
 
     def _hover(self, pos):
@@ -152,9 +157,14 @@ class CosmoMind:
             valores_pontos = {"facil": 10, "medio": 20, "dificil": 30}
             self.pontuacao += valores_pontos.get(dificuldade, 10)
             self.combo_acertos += 1
+
+            audio.tocar(audio.acerto)
+            audio.tocar(audio.tiro)
+
             if self.combo_acertos == 5:
                 if self.vida < 10:
                     self.vida += 1
+                    audio.tocar(audio.bonus)
                 self.combo_acertos = 0
             self.escudo_timer = 90
             
@@ -165,7 +175,8 @@ class CosmoMind:
             self.erros += 1
             self.combo_acertos = 0 
             self.ast_vel += self.VEL_AUMENTO # O asteroide atual acelera!
-            self.flash_timer = 18             
+            self.flash_timer = 18 
+            audio.tocar(audio.erro)            
             
         self.estado = self.S_FEEDBACK
 
@@ -179,8 +190,10 @@ class CosmoMind:
         if self.indice >= limite_atual:
             if self.nivel_atual < 5:
                 self.nivel_atual += 1
+                audio.tocar(audio.nivel_up)
                 self._configurar_nivel()
             else:
+                audio.tocar(audio.vitoria)
                 self.estado = self.S_FIM
                 return
         else:
@@ -213,6 +226,7 @@ class CosmoMind:
                 self.combo_acertos = 0
                 self.ast_vel += self.VEL_AUMENTO
                 self.flash_timer = 18
+                audio.tocar(audio.erro)
                 # Se o tempo acabar, passa para a próxima pergunta mas mantém o asteroide vindo
                 self._avancar()
 
@@ -241,13 +255,14 @@ class CosmoMind:
                     pergunta_atual = self.perguntas[self.indice]
                     dif = pergunta_atual.get("dificuldade", "facil")
                     self.vida -= {"facil": 1, "medio": 2, "dificil": 3}.get(dif, 1)
-                
+                audio.tocar(audio.impacto)
                 self.combo_acertos = 0
                 self.asteroide_destruido = True 
                 
                 if self.vida <= 0:
                     self.vida = 0
                     self.estado = self.S_GAMEOVER
+                    audio.tocar(audio.gameover)
                 else:
                     self._avancar()
                     self._gerar_novo_asteroide()
@@ -261,11 +276,13 @@ class CosmoMind:
                         self.tiros.remove(tiro)
                     
                     self.asteroide_vida -= 1
-                    
+                    audio.tocar(audio.tiro_impacto)
                     if self.asteroide_vida <= 0:
                         if self.is_boss:
-                            self.pontuacao += 1000  
+                            self.pontuacao += 1000
+                            audio.tocar(audio.vitoria)  
                         self.asteroide_destruido = True
+                        audio.tocar(audio.explosao)
                     break
 
     def desenhar(self):
