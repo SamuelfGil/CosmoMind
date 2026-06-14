@@ -3,84 +3,103 @@ import random
 import math
 from src.config import *
 from src.funcoes import renderizar_texto, altura_texto
-from src.dados import carregar_perguntas
+from src.dados import carregar_perguntas, carregar_recorde, salvar_recorde, salvar_no_ranking, carregar_ranking
 from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
 
-# Sistema central que controla as telas e regras do jogo
 class CosmoMind:
-    # Os estados possíveis da nossa máquina de estados do jogo
     S_INICIO = "inicio"
     S_NICKNAME = "nickname"
     S_JOGANDO = "jogando"
     S_FEEDBACK = "feedback"
     S_GAMEOVER = "gameover"
     S_FIM = "fim"
+    S_RANKING = "ranking"
 
     LETRAS = ["A", "B", "C", "D"]
     CORES_LETRAS = [(80, 120, 220), (180, 90, 200), (50, 170, 150), (200, 130, 40)]
 
-    # Onde começa a divisão do painel inferior
-    PAINEL_Y = 290
+    PAINEL_Y = 400
     PAINEL_H = ALTURA - PAINEL_Y - 4
 
-    # Onde o asteroide nasce e as suas velocidades
-    AST_INICIO_X = LARGURA - 60
-    AST_INICIO_Y = 60
-    VEL_BASE = 0.6
-    VEL_AUMENTO = 0.45
+    AST_INICIO_X = LARGURA - 100
+    AST_INICIO_Y = 80
+    VEL_BASE = 0.5
+    VEL_AUMENTO = 0.35
 
     def __init__(self, tela):
         self.tela = tela
-        # Puxa o banco de dados das perguntas do arquivo JSON
-        self.todas = carregar_perguntas()
+        self.todas_perguntas = carregar_perguntas()
+        self.nickname = ""
+        self.max_caracteres = 12
         self.reiniciar()
 
     def reiniciar(self):
-        # Embaralha as perguntas pra toda partida ser diferente
-        self.perguntas = random.sample(self.todas, len(self.todas))
-        self.indice = 0
-        self.pontuacao = 0
         self.estado = self.S_INICIO
+        self.pontuacao = 0
+        self.erros = 0
+        self.vida = 10
+        self.nivel_atual = 1
+        self.perguntas_por_nivel = {1: 5, 2: 7, 3: 10, 4: 12, 5: 15}
+        self.is_boss = False
+        self._configurar_nivel()
+
+    def _configurar_nivel(self):
+        qtd_necessaria = self.perguntas_por_nivel.get(self.nivel_atual, 5)
+        pool = list(self.todas_perguntas) if self.todas_perguntas else []
+        
+        if not pool:
+            pool = [{"pergunta": "Erro ao carregar perguntas.json", "alternativas": ["A", "B", "C", "D"], "correta": 0}]
+
+        while len(pool) < (qtd_necessaria + 10): 
+            pool.extend(pool)
+            
+        self.perguntas = random.sample(pool, len(pool)) 
+        self.indice = 0
         self.hover = -1
         self.selecionada = -1
-        self.erros = 0
-
-        self.nickname = ""
-        self.max_caracteres = 12
-
-        # Spawna o asteroide no canto superior direito
-        self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=24)
-        self.ast_vel = self.VEL_BASE
+        self.combo_acertos = 0
+        self.tempo_restante = 30.0
+        self.asteroide_destruido = False
+        self.tiros = []
         self.ast_rot = 0.0
-
-        # Timers que controlam efeitos visuais temporários 
         self.flash_timer = 0
         self.escudo_timer = 0
-        
-        # Gerenciamento dos lasers disparados pela nave
-        self.tiros = []
-        self.asteroide_destruido = False
+        self.is_boss = False
 
+        self._gerar_novo_asteroide()
         self._calcular_layout()
 
+    def _gerar_novo_asteroide(self):
+        """Gera um novo asteroide do topo apenas se o anterior foi totalmente destruído ou colidiu"""
+        # CONFIGURADO: Agora o Boss só aparece na pergunta de índice 9 (10ª pergunta) do Nível 5
+        self.is_boss = (self.nivel_atual == 5 and self.indice == 9)
+        
+        if self.is_boss:
+            self.asteroide_vida = 3
+            self.ast_vel = self.VEL_BASE * 0.55  
+            self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=65)
+        else:
+            self.asteroide_vida = 1
+            self.ast_vel = self.VEL_BASE + (self.nivel_atual * 0.15)
+            self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=26)
+        self.asteroide_destruido = False
+
     def _calcular_layout(self):
-        # Cria os retângulos de colisão das 4 alternativas com base no tamanho do texto delas
         self.rects_alt = []
         if self.indice >= len(self.perguntas):
             return
         pergunta = self.perguntas[self.indice]
-        x = 50
-        lw = LARGURA - 100
-        y = self.PAINEL_Y + 68
-        gap = 7
+        x = 60
+        lw = LARGURA - 120
+        y = self.PAINEL_Y + 75
+        gap = 8
 
         for i, alt in enumerate(pergunta["alternativas"]):
-            h = max(44, altura_texto(alt, fonte_alt, lw - 44) + 18)
+            h = max(46, altura_texto(alt, fonte_alt, lw - 50) + 18)
             self.rects_alt.append(pygame.Rect(x, y, lw, h))
             y += h + gap
 
     def processar_evento(self, evento):
-        # Escuta os movimentos e cliques do jogador
         if evento.type == pygame.MOUSEMOTION:
             self._hover(evento.pos)
         elif evento.type == pygame.KEYDOWN:
@@ -102,7 +121,6 @@ class CosmoMind:
                     if len(self.nickname.strip()) > 0:
                         self.estado = self.S_JOGANDO
             elif self.estado == self.S_JOGANDO:
-                # Checa se o clique aconteceu dentro de algum botão de alternativa
                 for i, r in enumerate(self.rects_alt):
                     if r.collidepoint(evento.pos):
                         self._responder(i)
@@ -111,59 +129,73 @@ class CosmoMind:
                 self._avancar()
             elif self.estado in (self.S_GAMEOVER, self.S_FIM):
                 if self._rect_btn().collidepoint(evento.pos):
+                    salvar_recorde(self.pontuacao)
+                    salvar_no_ranking(self.nickname, self.pontuacao)
+                    self.estado = self.S_RANKING
+            elif self.estado == self.S_RANKING:
+                if self._rect_btn_ranking().collidepoint(evento.pos):
                     self.reiniciar()
 
     def _hover(self, pos):
-        # Verifica se o mouse tá passando por cima de alguma alternativa pra dar o efeito visual
         if self.estado != self.S_JOGANDO:
             self.hover = -1
             return
         self.hover = next((i for i, r in enumerate(self.rects_alt) if r.collidepoint(pos)), -1)
 
     def _responder(self, idx):
-        # Valida se a resposta que o player escolheu está certa ou errada
         self.selecionada = idx
-        correta = self.perguntas[self.indice]["correta"]
+        pergunta_atual = self.perguntas[self.indice]
+        correta = pergunta_atual["correta"]
+        dificuldade = pergunta_atual.get("dificuldade", "facil")
         
         if idx == correta:
-            self.pontuacao += 1
-            self.escudo_timer = 90 # Liga o escudo por 90 frames
+            valores_pontos = {"facil": 10, "medio": 20, "dificil": 30}
+            self.pontuacao += valores_pontos.get(dificuldade, 10)
+            self.combo_acertos += 1
+            if self.combo_acertos == 5:
+                if self.vida < 10:
+                    self.vida += 1
+                self.combo_acertos = 0
+            self.escudo_timer = 90
             
-            # Atira o laser na direção exata do asteroide
-            nave_x = LARGURA // 2
-            nave_y = (self.PAINEL_Y // 2 + 10)
-            novo_tiro = Tiro(nave_x, nave_y, self.asteroide.x, self.asteroide.y)
-            self.tiros.append(novo_tiro)
+            # Dispara o laser em direção ao asteroide atual
+            self.tiros.append(Tiro(LARGURA // 2, (self.PAINEL_Y // 2 + 20), self.asteroide.x, self.asteroide.y))
         else:
+            self.pontuacao = max(0, self.pontuacao - 10)
             self.erros += 1
-            self.ast_vel += self.VEL_AUMENTO # Punição: o asteroide acelera se errar
-            self.flash_timer = 18             # Tela pisca em vermelho
+            self.combo_acertos = 0 
+            self.ast_vel += self.VEL_AUMENTO # O asteroide atual acelera!
+            self.flash_timer = 18             
             
         self.estado = self.S_FEEDBACK
 
     def _avancar(self):
-        # Passa pra próxima pergunta do quiz
         self.selecionada = -1
         self.indice += 1
-        
-        # Se explodiu o asteroide na rodada passada, cria um novo no topo pra continuar o jogo
-        if self.asteroide_destruido:
-            self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=24)
-            self.asteroide_destruido = False
-            
-        # Vê se o banco de perguntas acabou pra fechar a partida
-        if self.indice >= len(self.perguntas):
-            self.estado = self.S_FIM
+        self.tempo_restante = 30.0
+
+        limite_atual = self.perguntas_por_nivel.get(self.nivel_atual, 5)
+
+        if self.indice >= limite_atual:
+            if self.nivel_atual < 5:
+                self.nivel_atual += 1
+                self._configurar_nivel()
+            else:
+                self.estado = self.S_FIM
+                return
         else:
-            self.estado = self.S_JOGANDO
-            self._calcular_layout()
+            # Se o asteroide anterior já morreu ou bateu, criamos um novo.
+            # Caso contrário, mantemos o atual persistente na tela!
+            if self.asteroide_destruido:
+                self._gerar_novo_asteroide()
+
+        self.estado = self.S_JOGANDO
+        self._calcular_layout()
 
     def atualizar(self):
-        # Atualiza a movimentação de tudo que roda em tempo real na gameplay
         for estrela in LISTA_ESTRELAS:
             estrela.mover()
 
-        # Mexe os tiros e remove da memória os que saíram da tela
         for tiro in self.tiros[:]:
             tiro.mover()
             if not tiro.ativo:
@@ -172,41 +204,72 @@ class CosmoMind:
         if self.estado not in (self.S_JOGANDO, self.S_FEEDBACK):
             return
 
-        self.ast_rot += 0.012 # Faz o asteroide girar de leve enquanto cai
+        if self.estado == self.S_JOGANDO:
+            self.tempo_restante -= 1 / 60.0
+            if self.tempo_restante <= 0:
+                self.tempo_restante = 30.0
+                self.pontuacao = max(0, self.pontuacao - 10)
+                self.erros += 1
+                self.combo_acertos = 0
+                self.ast_vel += self.VEL_AUMENTO
+                self.flash_timer = 18
+                # Se o tempo acabar, passa para a próxima pergunta mas mantém o asteroide vindo
+                self._avancar()
+
+        self.ast_rot += 0.012
+        if self.escudo_timer > 0:
+            self.escudo_timer -= 1
 
         NAVE_CX = LARGURA // 2
-        nave_y_area = (self.PAINEL_Y // 2 + 10)
+        nave_y_area = (self.PAINEL_Y // 2 + 20)
 
-        # Move o asteroide em linha reta mirando o centro da nave
+        # Movimentação do asteroide
         if not self.asteroide_destruido:
             dx = NAVE_CX - self.asteroide.x
             dy = nave_y_area - self.asteroide.y
             dist = math.hypot(dx, dy)
 
             if dist >= 1:
-                nx = dx / dist
-                ny = dy / dist
-                self.asteroide.x += nx * self.ast_vel
-                self.asteroide.y += ny * self.ast_vel
+                self.asteroide.x += (dx / dist) * self.ast_vel
+                self.asteroide.y += (dy / dist) * self.ast_vel
 
-            # Se a distância entre o asteroide e a nave for menor que o raio deles: BATEU (acaba o jogo)
-            if dist - self.asteroide.raio < 18 + 4:
-                self.estado = self.S_GAMEOVER
+            # Colisão com a nave
+            if dist - self.asteroide.raio < 24:
+                if self.is_boss:
+                    self.vida -= 7  
+                else:
+                    pergunta_atual = self.perguntas[self.indice]
+                    dif = pergunta_atual.get("dificuldade", "facil")
+                    self.vida -= {"facil": 1, "medio": 2, "dificil": 3}.get(dif, 1)
+                
+                self.combo_acertos = 0
+                self.asteroide_destruido = True 
+                
+                if self.vida <= 0:
+                    self.vida = 0
+                    self.estado = self.S_GAMEOVER
+                else:
+                    self._avancar()
+                    self._gerar_novo_asteroide()
 
-        # Checa colisão entre os lasers e o asteroide ativo
+        # Checagem de colisões dos lasers com o asteroide
         if not self.asteroide_destruido:
             for tiro in self.tiros[:]:
                 dist_tiro = math.hypot(tiro.x - self.asteroide.x, tiro.y - self.asteroide.y)
                 if dist_tiro < (tiro.raio + self.asteroide.raio):
-                    self.asteroide_destruido = True # Quebra o asteroide
                     if tiro in self.tiros:
-                        self.tiros.remove(tiro)     # Remove o laser da tela
+                        self.tiros.remove(tiro)
+                    
+                    self.asteroide_vida -= 1
+                    
+                    if self.asteroide_vida <= 0:
+                        if self.is_boss:
+                            self.pontuacao += 1000  
+                        self.asteroide_destruido = True
                     break
 
     def desenhar(self):
-        # Gerenciador de renderização das telas com base no estado do jogo
         self.tela.fill(FUNDO)
-
         for estrela in LISTA_ESTRELAS:
             estrela.desenhar(self.tela)
 
@@ -220,261 +283,228 @@ class CosmoMind:
             self._d_gameover()
         elif self.estado == self.S_FIM:
             self._d_fim()
+        elif self.estado == self.S_RANKING:
+            self._d_ranking()
 
     def _d_inicio(self):
-        # Render da tela inicial (Menu Principal)
         t = fonte_titulo.render("CosmoMind", True, AMARELO)
-        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 160)))
-
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 200)))
         sub = fonte_info.render("Responda certo para destruir o asteroide!", True, BRANCO)
-        self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 220)))
-
-        info = fonte_pequena.render("Se errar, o asteroide acelera — destrua-o antes do impacto!", True, CINZA)
-        self.tela.blit(info, info.get_rect(center=(LARGURA // 2, 255)))
-
-        desenhar_nave(self.tela, LARGURA // 2, 350)
-
-        preview_ast = AsteroideMecanica(LARGURA // 2 + 120, 320, raio=22)
-        preview_ast.desenhar(self.tela, angulo_rot=0.3)
-
-        seta = fonte_info.render("<- asteroide", True, LARANJA)
-        self.tela.blit(seta, (LARGURA // 2 + 148, 310))
-
-        nave_l = fonte_info.render("nave ->", True, (100, 180, 255))
-        self.tela.blit(nave_l, (LARGURA // 2 - nave_l.get_width() - 26, 338))
-
-        self._btn("Iniciar jogo", (LARGURA // 2, 440))
+        self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 270)))
+        info = fonte_pequena.render("Errar alternativas reduz 10 pontos. Sobreviva ao Boss na Pergunta 10 do Setor 5!", True, CINZA)
+        self.tela.blit(info, info.get_rect(center=(LARGURA // 2, 310)))
+        desenhar_nave(self.tela, LARGURA // 2, 440)
+        self._btn("Iniciar jogo", (LARGURA // 2, 560))
 
     def _d_nickname(self):
         t = fonte_titulo.render("Identificação do Piloto", True, AMARELO)
-        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 160)))
-
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 200)))
         sub = fonte_info.render("Digite seu nickname para o painel de comando:", True, BRANCO)
-        self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 220)))
-
-        caixa_texto = pygame.Rect(0, 0, 340, 50)
-        caixa_texto.center = (LARGURA // 2, 290)
+        self.tela.blit(sub, sub.get_rect(center=(LARGURA // 2, 270)))
         
-        cor_borda = VERDE if len(self.nickname.strip()) > 0 else AZUL
+        caixa_texto = pygame.Rect(0, 0, 380, 52)
+        caixa_texto.center = (LARGURA // 2, 350)
         pygame.draw.rect(self.tela, FUNDO_PAINEL, caixa_texto, border_radius=8)
-        pygame.draw.rect(self.tela, cor_borda, caixa_texto, 2, border_radius=8)
+        pygame.draw.rect(self.tela, AZUL, caixa_texto, 2, border_radius=8)
 
-        if self.nickname == "":
-            txt_surf = fonte_info.render("Sua Tag de Voo...", True, CINZA)
-        else:
-            txt_surf = fonte_info.render(self.nickname, True, BRANCO)
-            
+        txt_surf = fonte_info.render(self.nickname if self.nickname else "Sua Tag de Voo...", True, BRANCO if self.nickname else CINZA)
         self.tela.blit(txt_surf, txt_surf.get_rect(center=caixa_texto.center))
-
-        cont_txt = f"{len(self.nickname)}/{self.max_caracteres}"
-        cont_surf = fonte_pequena.render(cont_txt, True, CINZA)
-        self.tela.blit(cont_surf, (caixa_texto.right - cont_surf.get_width(), caixa_texto.bottom + 6))
-
-        if len(self.nickname.strip()) > 0:
-            self._btn("Confirmar Entrada", (LARGURA // 2, 410))
-            dica_enter = fonte_pequena.render("ou pressione ENTER", True, CINZA)
-            self.tela.blit(dica_enter, dica_enter.get_rect(center=(LARGURA // 2, 452)))
-
-    def _rect_btn_nickname(self):
-        r = pygame.Rect(0, 0, 230, 48)
-        r.center = (LARGURA // 2, 410)
-        return r
+        self._btn("Confirmar Entrada", (LARGURA // 2, 480))
 
     def _d_jogo(self):
-        # Render da área de jogo activa
         pergunta = self.perguntas[self.indice]
         correta = pergunta["correta"]
 
-        # Desenha o flash vermelho na tela se o player tiver tomado dano
         if self.flash_timer > 0:
             alfa = int(160 * self.flash_timer / 18)
             ov = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
             ov.fill((200, 30, 30, alfa))
             self.tela.blit(ov, (0, 0))
+            self.flash_timer -= 1
 
         self._d_jogo_area(correta)
         self._d_painel_pergunta(pergunta, correta)
 
         if self.estado == self.S_FEEDBACK:
-            d = fonte_pequena.render("Clique para continuar ->", True, CINZA)
-            self.tela.blit(d, d.get_rect(center=(LARGURA // 2, ALTURA - 10)))
+            d = fonte_pequena.render("Clique em qualquer lugar para carregar a próxima pergunta ->", True, AMARELO)
+            self.tela.blit(d, d.get_rect(center=(LARGURA // 2, ALTURA - 15)))
 
     def _d_jogo_area(self, correta):
-        # Desenha os elements espaciais (HUD, Nave, Lasers e Asteroide)
         area_h = self.PAINEL_Y - 4
-        pygame.draw.line(self.tela, AZUL_ESC, (0, self.PAINEL_Y - 2), (LARGURA, self.PAINEL_Y - 2), 1)
+        pygame.draw.line(self.tela, AZUL_ESC, (0, self.PAINEL_Y - 2), (LARGURA, self.PAINEL_Y - 2), 2)
 
-        # Desenha a barrinha de progresso das fases
-        bx, by, bw, bh = 12, 10, 200, 6
-        pygame.draw.rect(self.tela, CINZA_ESC, (bx, by, bw, bh), border_radius=3)
-        prog = int((self.indice / len(self.perguntas)) * bw)
+        bx, by, bw, bh = 20, 20, 250, 8
+        pygame.draw.rect(self.tela, CINZA_ESC, (bx, by, bw, bh), border_radius=4)
+        
+        limite_atual = self.perguntas_por_nivel.get(self.nivel_atual, 5)
+        prog = int((min(self.indice, limite_atual) / limite_atual) * bw)
         if prog:
-            pygame.draw.rect(self.tela, AZUL, (bx, by, prog, bh), border_radius=3)
+            pygame.draw.rect(self.tela, AZUL_HOVER, (bx, by, prog, bh), border_radius=4)
 
-        # Desenha os indicadores de pontos na interface gráfica
-        pts = fonte_pequena.render(f"Pontos: {self.pontuacao}", True, AMARELO)
-        self.tela.blit(pts, (LARGURA - pts.get_width() - 12, 8))
+        recorde_atual = carregar_recorde()
+        pts_surf = fonte_info.render(f"PONTOS: {self.pontuacao} (Max: {recorde_atual})", True, AMARELO)
+        self.tela.blit(pts_surf, (LARGURA - pts_surf.get_width() - 20, 15))
 
-        num = fonte_pequena.render(f"{self.indice + 1}/{len(self.perguntas)}", True, CINZA)
-        self.tela.blit(num, (bx, by + 12))
+        cor_vida = VERDE if self.vida > 5 else (AMARELO if self.vida > 2 else VERMELHO)
+        vida_txt = fonte_info.render(f"INTEGRIDADE DA NAVE: {self.vida}/10 " + ("█" * self.vida), True, cor_vida)
+        self.tela.blit(vida_txt, (LARGURA - vida_txt.get_width() - 20, 45))
 
-        nick_txt = fonte_pequena.render(f"Piloto: {self.nickname}", True, BRANCO)
-        self.tela.blit(nick_txt, (bx, by + 28))
+        t_surf = fonte_info.render(f"TEMPO: {max(0.0, self.tempo_restante):.1f}s", True, BRANCO)
+        self.tela.blit(t_surf, (LARGURA - t_surf.get_width() - 20, 75))
 
-        perigo_txt = f"Vel. asteroide: {self.ast_vel:.1f}x"
-        cor_vel = VERDE if self.ast_vel <= 1.2 else (LARANJA if self.ast_vel <= 2.0 else VERMELHO)
-        vel_s = fonte_pequena.render(perigo_txt, True, cor_vel)
-        self.tela.blit(vel_s, vel_s.get_rect(center=(LARGURA // 2, 24)))
+        lbl_fase = "⚠️ COMBATE CRÍTICO: ALVO BOSS ATIVO" if self.is_boss else f"SETOR ESPACIAL: 0{self.nivel_atual}/05"
+        fase_surf = fonte_info.render(lbl_fase, True, VERMELHO if self.is_boss else AZUL_HOVER)
+        self.tela.blit(fase_surf, (20, 45))
 
-        NAVE_CX = LARGURA // 2
-        nave_y_area = area_h // 2 + 10
-        desenhar_nave(self.tela, NAVE_CX, nave_y_area, escudo_ativo=(self.escudo_timer > 0))
+        num = fonte_pequena.render(f"Progresso do Banco: Seq {self.indice + 1}/{limite_atual}", True, CINZA)
+        self.tela.blit(num, (20, 75))
+
+        if not self.asteroide_destruido:
+            lbl_ast = f"ALVO LOCK-ON" if not self.is_boss else f"⚠️ ALVO CRÍTICO BOSS: {self.asteroide_vida}/3 RESISTÊNCIA"
+            ast_hp_surf = fonte_pequena.render(lbl_ast, True, LARANJA if not self.is_boss else VERMELHO)
+            self.tela.blit(ast_hp_surf, ast_hp_surf.get_rect(center=(self.asteroide.x, max(15, self.asteroide.y - self.asteroide.raio - 15))))
+
+        desenhar_nave(self.tela, LARGURA // 2, area_h // 2 + 30, escudo_ativo=(self.escudo_timer > 0))
 
         for tiro in self.tiros:
             tiro.desenhar(self.tela)
 
-        # Só desenha o asteroide se ele não tiver sido destruído pelo laser
         if not self.asteroide_destruido:
-            ast_y_vis = self.asteroide.y
-            # Trava visual pra impedir o sprite do asteroide de vazar pra dentro do menu de texto
-            if ast_y_vis > area_h - self.asteroide.raio:
-                ast_y_vis = area_h - self.asteroide.raio
-
             backup_y = self.asteroide.y
-            self.asteroide.y = ast_y_vis
+            if self.asteroide.y > area_h - self.asteroide.raio:
+                self.asteroide.y = area_h - self.asteroide.raio
             self.asteroide.desenhar(self.tela, self.ast_rot)
             self.asteroide.y = backup_y
 
-            # Alerta piscante de proximidade perigosa
-            dist = math.hypot(NAVE_CX - self.asteroide.x, nave_y_area - self.asteroide.y)
-            if dist < 140:
-                av = fonte_pequena.render("! IMPACTO IMINENTE!", True, VERMELHO)
-                self.tela.blit(av, av.get_rect(center=(LARGURA // 2, area_h - 18)))
-
     def _d_painel_pergunta(self, pergunta, correta):
-        # Montagem do retângulo cinza do painel inferior
         painel = pygame.Rect(0, self.PAINEL_Y, LARGURA, self.PAINEL_H)
         pygame.draw.rect(self.tela, FUNDO_PAINEL, painel)
-        pygame.draw.rect(self.tela, AZUL_ESC, painel, 1)
+        lw = LARGURA - 120
+        dif_tag = f" [{pergunta.get('dificuldade', 'facil').upper()}]"
+        renderizar_texto(self.tela, pergunta["pergunta"] + dif_tag, fonte_pergunta, BRANCO, 60, self.PAINEL_Y + 20, lw)
 
-        lw = LARGURA - 32
-        renderizar_texto(self.tela, pergunta["pergunta"], fonte_pergunta, BRANCO, 16, self.PAINEL_Y + 10, lw)
-
-        # Loop pra renderizar os 4 botões de alternativas
         for i, (rect, alt) in enumerate(zip(self.rects_alt, pergunta["alternativas"])):
             self._d_alt(i, rect, alt, correta)
 
     def _d_alt(self, idx, rect, texto, correta):
-        # Define as cores do botão variando de acordo se está focado, clicado, certo ou errado
         hover = idx == self.hover
         sel = idx == self.selecionada
         eh_correta = idx == correta
         feedback = self.estado == self.S_FEEDBACK
 
         if feedback:
-            if sel and eh_correta:
-                cf, cb, ct = VERDE_ESC, VERDE, BRANCO
-            elif sel and not eh_correta:
-                cf, cb, ct = VERMELHO_ESC, VERMELHO, BRANCO
-            elif eh_correta:
-                cf, cb, ct = VERDE_ESC, VERDE, BRANCO
-            else:
-                cf, cb, ct = CINZA_ESC, CINZA_ESC, CINZA
+            if sel and eh_correta: cf, cb, ct = VERDE_ESC, VERDE, BRANCO
+            elif sel and not eh_correta: cf, cb, ct = VERMELHO_ESC, VERMELHO, BRANCO
+            elif eh_correta: cf, cb, ct = VERDE_ESC, VERDE, BRANCO
+            else: cf, cb, ct = CINZA_ESC, CINZA_ESC, CINZA
         else:
             cf = AZUL_ESC if hover else FUNDO_PAINEL
             cb = AZUL_HOVER if hover else AZUL_ESC
             ct = BRANCO
 
-        pygame.draw.rect(self.tela, cf, rect, border_radius=8)
-        pygame.draw.rect(self.tela, cb, rect, 2, border_radius=8)
+        pygame.draw.rect(self.tela, cf, rect, border_radius=6)
+        pygame.draw.rect(self.tela, cb, rect, 2, border_radius=6)
 
-        # Desenha a bolinha colorida com as letras das alternativas (A, B, C, D)
-        cx_ = rect.x + 20
+        cx_ = rect.x + 25
         cy_ = rect.centery
-        pygame.draw.circle(self.tela, self.CORES_LETRAS[idx], (cx_, cy_), 12)
-
+        pygame.draw.circle(self.tela, self.CORES_LETRAS[idx], (cx_, cy_), 13)
         letra_surf = fonte_alt.render(self.LETRAS[idx], True, BRANCO)
         self.tela.blit(letra_surf, letra_surf.get_rect(center=(cx_, cy_)))
 
-        # Coloca o ícone de feedback rápido (X ou Y) no canto direito do botão
-        if feedback and (sel or eh_correta):
-            ic = "Y" if eh_correta else "X"
-            cic = VERDE if eh_correta else VERMELHO
-            is_ = fonte_alt.render(ic, True, cic)
-            self.tela.blit(is_, is_.get_rect(midright=(rect.right - 10, cy_)))
-
-        tw = rect.width - 50
-        renderizar_texto(self.tela, texto, fonte_alt, ct,
-                         rect.x + 38,
-                         rect.centery - altura_texto(texto, fonte_alt, tw) // 2,
-                         tw)
+        tw = rect.width - 60
+        renderizar_texto(self.tela, texto, fonte_alt, ct, rect.x + 50, rect.centery - altura_texto(texto, fonte_alt, tw) // 2, tw)
 
     def _d_gameover(self):
-        # Render da tela de derrota se o asteroide bater na nave
         ov = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
-        ov.fill((220, 50, 30, 80))
+        ov.fill((180, 20, 20, 95))
         self.tela.blit(ov, (0, 0))
 
-        NAVE_CX = LARGURA // 2
-        NAVE_CY = (self.PAINEL_Y // 2 + 10)
-        impacto_ast = AsteroideMecanica(NAVE_CX, NAVE_CY, raio=40)
-        impacto_ast.desenhar(self.tela, self.ast_rot)
-
-        t = fonte_titulo.render("IMPACTO!", True, VERMELHO)
-        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 160)))
-
-        s = fonte_info.render(f"Pontos: {self.pontuacao}  * Erros: {self.erros}", True, BRANCO)
-        self.tela.blit(s, s.get_rect(center=(LARGURA // 2, 220)))
-
-        msg = fonte_info.render("O asteroide te alcançou...", True, LARANJA)
-        self.tela.blit(msg, msg.get_rect(center=(LARGURA // 2, 265)))
-
-        self._btn("Tentar novamente", (LARGURA // 2, 340))
+        t = fonte_titulo.render("NAVE DESTRUÍDA EM COMBATE", True, VERMELHO)
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 250)))
+        s = fonte_info.render(f"Pontuação alcançada: {self.pontuacao} pontos | Parou no Nível {self.nivel_atual}", True, BRANCO)
+        self.tela.blit(s, s.get_rect(center=(LARGURA // 2, 320)))
+        self._btn("Ver Painel de Ranking", (LARGURA // 2, 450))
 
     def _d_fim(self):
-        # Render da tela final de vitória
-        total = len(self.perguntas)
-        pct = self.pontuacao / total * 100
+        t = fonte_titulo.render("VITÓRIA SUPREMA: CONSTELAÇÃO SALVA!", True, VERDE)
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 220)))
+        pl = fonte_titulo.render(f"Pontuação Final: {self.pontuacao}", True, AMARELO)
+        self.tela.blit(pl, pl.get_rect(center=(LARGURA // 2, 300)))
+        ms = fonte_info.render(f"Parabéns Comandante {self.nickname}! Todos os setores foram pacificados.", True, BRANCO)
+        self.tela.blit(ms, ms.get_rect(center=(LARGURA // 2, 370)))
+        self._btn("Ver Painel de Ranking", (LARGURA // 2, 500))
 
-        # Mensagens baseadas na porcentagem de acertos do jogador
-        if pct == 100:
-            msg, cm = f"Piloto perfeito! Nenhum asteroide te pegou, {self.nickname}!", AMARELO
-        elif pct >= 70:
-            msg, cm = "Ótima pilotagem, astronauta!", VERDE
-        elif pct >= 50:
-            msg, cm = "Missão concluída, mas com danos...", LARANJA
-        else:
-            msg, cm = "A nave sofreu bastante. Estude mais!", VERMELHO
+    def _d_ranking(self):
+        t = fonte_titulo.render("🏆 CLASSIFICAÇÃO DOS MELHORES PILOTOS 🏆", True, AMARELO)
+        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 60)))
 
-        t = fonte_titulo.render("Missão concluída!", True, BRANCO)
-        self.tela.blit(t, t.get_rect(center=(LARGURA // 2, 130)))
+        top_10 = carregar_ranking()
 
-        pl = fonte_titulo.render(f"{self.pontuacao} / {total}", True, AMARELO)
-        self.tela.blit(pl, pl.get_rect(center=(LARGURA // 2, 210)))
+        start_y = 140
+        row_h = 42
+        box_w = 600
+        box_x = (LARGURA - box_w) // 2
 
-        p2 = fonte_info.render(f"{pct:.0f}% de aproveitamento  * {self.erros} erro(s)", True, CINZA)
-        self.tela.blit(p2, p2.get_rect(center=(LARGURA // 2, 265)))
+        pygame.draw.rect(self.tela, AZUL_ESC, (box_x, start_y, box_w, row_h), border_radius=4)
+        h_pos = fonte_info.render("POS", True, BRANCO)
+        h_nome = fonte_info.render("PILOTO", True, BRANCO)
+        h_pts = fonte_info.render("PONTOS", True, BRANCO)
+        self.tela.blit(h_pos, (box_x + 20, start_y + 8))
+        self.tela.blit(h_nome, (box_x + 120, start_y + 8))
+        self.tela.blit(h_pts, (box_x + box_w - 120, start_y + 8))
 
-        ms = fonte_info.render(msg, True, cm)
-        self.tela.blit(ms, ms.get_rect(center=(LARGURA // 2, 315)))
+        for i in range(10):
+            curr_y = start_y + row_h + (i * row_h) + (i * 4)
+            bg_cor = FUNDO_PAINEL if i < len(top_10) else CINZA_ESC
+            pygame.draw.rect(self.tela, bg_cor, (box_x, curr_y, box_w, row_h), border_radius=4)
 
-        self._btn("Jogar novamente", (LARGURA // 2, 400))
+            if i < len(top_10) and top_10[i][0] == self.nickname and top_10[i][1] == self.pontuacao:
+                pygame.draw.rect(self.tela, AMARELO, (box_x, curr_y, box_w, row_h), 2, border_radius=4)
+
+            pos_surf = fonte_info.render(f"{i+1:02d}º", True, AMARELO if i < 3 else BRANCO)
+            self.tela.blit(pos_surf, (box_x + 20, curr_y + 8))
+
+            if i < len(top_10):
+                nome, pts = top_10[i]
+                nome_surf = fonte_info.render(str(nome), True, BRANCO)
+                pts_surf = fonte_info.render(f"{pts} pts", True, AMARELO)
+                self.tela.blit(nome_surf, (box_x + 120, curr_y + 8))
+                self.tela.blit(pts_surf, (box_x + box_w - 120, curr_y + 8))
+            else:
+                vazio_surf = fonte_info.render("---", True, CINZA)
+                self.tela.blit(vazio_surf, (box_x + 120, curr_y + 8))
+                self.tela.blit(vazio_surf, (box_x + box_w - 120, curr_y + 8))
+
+        self._btn_voltar_ranking("Voltar para o Menu", (LARGURA // 2, ALTURA - 60))
 
     def _btn(self, texto, centro):
-        # Função genérica pra fazer os botões azuis que reagem ao mouse (hover)
-        r = pygame.Rect(0, 0, 230, 48)
+        r = pygame.Rect(0, 0, 280, 52)
         r.center = centro
         mouse = pygame.mouse.get_pos()
         cor = AZUL_HOVER if r.collidepoint(mouse) else AZUL
-        pygame.draw.rect(self.tela, cor, r, border_radius=11)
+        pygame.draw.rect(self.tela, cor, r, border_radius=8)
         s = fonte_info.render(texto, True, BRANCO)
         self.tela.blit(s, s.get_rect(center=r.center))
 
+    def _btn_voltar_ranking(self, texto, centro):
+        r = self._rect_btn_ranking()
+        mouse = pygame.mouse.get_pos()
+        cor = VERDE if r.collidepoint(mouse) else VERDE_ESC
+        pygame.draw.rect(self.tela, cor, r, border_radius=8)
+        s = fonte_info.render(texto, True, BRANCO)
+        self.tela.blit(s, s.get_rect(center=r.center))
+
+    def _rect_btn_nickname(self):
+        r = pygame.Rect(0, 0, 260, 52)
+        r.center = (LARGURA // 2, 480)
+        return r
+
     def _rect_btn(self):
-        # Retorna o hitbox do botão final de reinicialização pra checar os cliques
-        r = pygame.Rect(0, 0, 230, 48)
-        if self.estado == self.S_GAMEOVER:
-            r.center = (LARGURA // 2, 340)
-        else:
-            r.center = (LARGURA // 2, 400)
+        r = pygame.Rect(0, 0, 280, 52)
+        r.center = (LARGURA // 2, 450) if self.estado == self.S_GAMEOVER else (LARGURA // 2, 500)
+        return r
+
+    def _rect_btn_ranking(self):
+        r = pygame.Rect(0, 0, 280, 52)
+        r.center = (LARGURA // 2, ALTURA - 60)
         return r

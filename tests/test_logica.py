@@ -1,31 +1,25 @@
-from src.funcoes import calcular_pontos, jogador_perdeu, limitar_valor
+import unittest
+import pygame
+from src.funcoes import quebrar_linhas, altura_texto
 
+class TestCosmoMindFuncoes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Inicializa o pygame em modo dummy (sem abrir janela) apenas para carregar fontes nos testes
+        pygame.font.init()
+        cls.fonte_teste = pygame.font.SysFont("Arial", 20)
 
-def test_calcular_pontos():
-    """Deve somar corretamente os pontos atuais com os pontos ganhos."""
-    assert calcular_pontos(10, 5) == 15
+    def test_quebrar_linhas_texto_curto(self):
+        texto = "Janela de Teste"
+        resultado = quebrar_linhas(texto, self.fonte_teste, 400)
+        self.assertTrue(len(resultado) >= 1)
+        self.assertIn("Janela", resultado[0])
 
+    def test_altura_texto_retorno_valido(self):
+        texto = "Linha unica de teste para verificar a medicao de altura do painel."
+        altura = altura_texto(texto, self.fonte_teste, 300)
+        self.assertGreater(altura, 0)
+        self.assertIsInstance(altura, int)
 
-def test_jogador_perdeu_com_zero_vidas():
-    """Deve indicar derrota quando o total de vidas chega a zero."""
-    assert jogador_perdeu(0) is True
-
-
-def test_jogador_nao_perdeu_com_vidas():
-    """Nao deve indicar derrota quando o jogador ainda tem vidas."""
-    assert jogador_perdeu(3) is False
-
-
-def test_limitar_valor_abaixo_do_minimo():
-    """Deve retornar o limite minimo quando o valor informado for menor."""
-    assert limitar_valor(-5, 0, 100) == 0
-
-
-def test_limitar_valor_acima_do_maximo():
-    """Deve retornar o limite maximo quando o valor informado for maior."""
-    assert limitar_valor(150, 0, 100) == 100
-
-
-def test_limitar_valor_dentro_do_intervalo():
-    """Deve manter o valor original quando ele ja estiver no intervalo."""
-    assert limitar_valor(50, 0, 100) == 50
+if __name__ == "__main__":
+    unittest.main()

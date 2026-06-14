@@ -1,58 +1,36 @@
 import pygame
-import pygame.freetype
 
-# Inicializa o que o pygame precisa pra desenhar a tela e os textos
 pygame.init()
-pygame.freetype.init()
+pygame.font.init()
 
-# Resolução da tela do jogo
-LARGURA = 800
-ALTURA = 600
+# Configurações de Janela
+LARGURA = 1024
+ALTURA = 720
 
-# Paleta de cores do jogo (padrão RGB)
-FUNDO = (10, 10, 30)            # Azul escuro pro espaço
-FUNDO_PAINEL = (15, 15, 45)     # Fundo do painel de perguntas
-AZUL_ESC = (25, 35, 70)         # Borda padrão das caixas
-AZUL = (50, 100, 200)           # Cor dos botões e da barra de progresso
-AZUL_HOVER = (70, 130, 240)     # Cor de quando o mouse passa por cima do botão
-VERDE = (50, 200, 100)          # Feedback de acerto
-VERDE_ESC = (30, 130, 60)       # Caixa da resposta certa
-VERMELHO = (220, 70, 70)        # Feedback de erro
-VERMELHO_ESC = (150, 40, 40)    # Caixa da resposta errada
-AMARELO = (255, 220, 50)        # Destaques e pontuação
-LARANJA = (255, 140, 30)        # Fogo do motor e contorno do tiro
-BRANCO = (240, 240, 255)        # Cor geral dos textos
-CINZA = (120, 130, 160)         # Textos secundários e dicas
-CINZA_ESC = (55, 60, 85)        # Fundo da barra de progresso esvaziada
+# Paleta de Cores (Estilo Sci-Fi/Espacial)
+FUNDO = (10, 10, 22)
+FUNDO_PAINEL = (18, 18, 38)
 
-# Configurações do laser da nave
-AMARELO_TIRO = (255, 255, 150)
-VELOCIDADE_TIRO = 8
+BRANCO = (240, 240, 255)
+CINZA = (160, 165, 180)
+CINZA_ESC = (45, 45, 65)
 
-# ajuste pra adaptar a biblioteca freetype pro jeito antigo de usar fontes (gil rever)
-class AdaptadorFonte:
-    def __init__(self, nome, tamanho, bold=False):
-        self.font = pygame.freetype.SysFont(nome, tamanho)
-        self.font.strong = bold
-        self.tamanho = tamanho
+AZUL = (40, 90, 210)
+AZUL_ESC = (25, 45, 110)
+AZUL_HOVER = (60, 140, 255)
 
-    def render(self, texto, antialias, cor):
-        # Retorna só a superfície do texto ignorando o rect nativo dele
-        surf, _ = self.font.render(texto, cor)
-        return surf
+VERDE = (40, 210, 110)
+VERDE_ESC = (20, 100, 50)
 
-    def size(self, texto):
-        # Mede o tamanho em pixels que o texto vai ocupar na tela
-        rect = self.font.get_rect(texto)
-        return (rect.width, rect.height)
+VERMELHO = (220, 50, 70)
+VERMELHO_ESC = (110, 25, 35)
 
-    def get_linesize(self):
-        # Calcula o espaçamento pro texto não ficar um em cima do outro na próxima linha
-        return int(self.tamanho * 1.2)
+LARANJA = (240, 110, 40)
+AMARELO = (250, 210, 50)
 
-# Definindo os tamanhos de fonte que o jogo vai usar
-fonte_titulo = AdaptadorFonte("Arial", 34, bold=True)
-fonte_pergunta = AdaptadorFonte("Arial", 19, bold=True)
-fonte_alt = AdaptadorFonte("Arial", 16)
-fonte_info = AdaptadorFonte("Arial", 18)
-fonte_pequena = AdaptadorFonte("Arial", 14)
+# Inicialização de Fontes do Sistema
+fonte_titulo = pygame.font.SysFont("Arial", 36, bold=True)
+fonte_pergunta = pygame.font.SysFont("Arial", 22, bold=True)
+fonte_alt = pygame.font.SysFont("Arial", 18)
+fonte_info = pygame.font.SysFont("Arial", 18, bold=True)
+fonte_pequena = pygame.font.SysFont("Arial", 14)

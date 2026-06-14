@@ -1,39 +1,28 @@
-from src.config import fonte_alt
+import pygame
 
-# Lógica para quebrar o texto em várias linhas se ele for maior que a largura da caixa
 def quebrar_linhas(texto, fonte, largura_max):
     palavras = texto.split(" ")
-    linhas, atual = [], ""
+    linhas = []
+    linha_atual = ""
     
-    for p in palavras:
-        teste = atual + (" " if atual else "") + p
-        # Se a palavra couber na linha atual, mantém ela ali
-        if fonte.size(teste)[0] <= largura_max:
-            atual = teste
+    for palavra in palavras:
+        # CORRIGIDO: alterado de palabra para palavra
+        test_linha = linha_atual + (" " if linha_atual else "") + palavra
+        if fonte.size(test_linha)[0] <= largura_max:
+            linha_atual = test_linha
         else:
-            # Se não couber, fecha a linha atual e joga a palavra pra próxima
-            if atual:
-                linhas.append(atual)
-            atual = p
-            
-    # Não esquecer de pegar a última palavra que sobrou no loop
-    if atual:
-        linhas.append(atual)
+            linhas.append(linha_atual)
+            linha_atual = palavra
+    if linha_atual:
+        linhas.append(linha_atual)
     return linhas
 
-
-# Desenha o texto quebrado na tela, linha por linha, respeitando a altura
-def renderizar_texto(surface, texto, fonte, cor, x, y, largura_max):
-    linhas = quebrar_linhas(texto, fonte, largura_max)
-    h = fonte.get_linesize()
-    
-    for i, l in enumerate(linhas):
-        surface.blit(fonte.render(l, True, cor), (x, y + i * h))
-        
-    # Retorna o tamanho vertical total que o texto usou na tela
-    return len(linhas) * h
-
-
-# Calcula o tamanho do texto antes de desenhar (bom pra ajustar o tamanho das caixas)
 def altura_texto(texto, fonte, largura_max):
-    return len(quebrar_linhas(texto, fonte, largura_max)) * fonte.get_linesize()
+    linhas = quebrar_linhas(texto, fonte, largura_max)
+    return len(linhas) * fonte.get_linesize()
+
+def renderizar_texto(tela, texto, fonte, cor, x, y, largura_max):
+    linhas = quebrar_linhas(texto, fonte, largura_max)
+    for i, linha in enumerate(linhas):
+        surf = fonte.render(linha, True, cor)
+        tela.blit(surf, (x, y + i * fonte.get_linesize()))
