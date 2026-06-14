@@ -9,6 +9,7 @@ Esta pasta contem testes automatizados do projeto.
 ## Como executar
 
 ```bash
+pip install numpy
 python -m pytest
 ```
 

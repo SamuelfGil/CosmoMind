@@ -1,8 +1,8 @@
 import numpy as np
 import pygame
 
-pygame.mixer.pre_init(44100, -16, 2, 512)
-pygame.mixer.init()
+if not pygame.mixer.get_init():
+    pygame.mixer.init(44100, -16, 2, 512)
 
 TAXA_AMOSTRAGEM = 44100
 
@@ -103,10 +103,7 @@ def _trilha_suspense(duracao=8.0, volume=0.22):
 
 
 class Audio:
-    """Gerenciador central de música e efeitos sonoros do jogo"""
-
     def __init__(self):
-        # Efeitos sonoros
         self.clique = _tom(600, 0.05, 0.25, "quadrada")
         self.tiro = _tom(950, 0.12, 0.3, "quadrada", destino=250)
         self.acerto = _sequencia([(523, 0.08), (784, 0.14)], volume=0.35)
@@ -116,7 +113,12 @@ class Audio:
         self.gameover = _sequencia([(400, 0.25), (300, 0.25), (180, 0.5)], volume=0.4)
         self.vitoria = _sequencia([(523, 0.15), (659, 0.15), (784, 0.15), (1046, 0.4)], volume=0.35)
 
-        # Trilha sonora ambiente de suspense, em loop
+        
+        self.impacto = _ruido(0.25, 0.55)                 # asteroide bateu na nave
+        self.tiro_impacto = _tom(500, 0.08, 0.3, "triangular", destino=150)  # laser acertou o alvo
+        self.bonus = _sequencia([(660, 0.08), (880, 0.08), (1320, 0.12)], volume=0.3)  # combo deu vida extra
+        self.nivel_up = _sequencia([(440, 0.12), (554, 0.12), (659, 0.12), (880, 0.2)], volume=0.35)  # subiu de setor
+
         self.trilha = _trilha_suspense()
         self.trilha.set_volume(0.35)
 
@@ -130,5 +132,4 @@ class Audio:
         som.play()
 
 
-# Instância única usada pelo jogo inteiro
 audio = Audio()

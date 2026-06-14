@@ -89,6 +89,7 @@ class CosmoMind:
                     self.nickname = self.nickname[:-1]
                 elif evento.key == pygame.K_RETURN:
                     if len(self.nickname.strip()) > 0:
+                        audio.tocar(audio.clique)
                         self.estado = self.S_JOGANDO
                 else:
                     if len(self.nickname) < self.max_caracteres:
@@ -104,16 +105,21 @@ class CosmoMind:
                         audio.tocar(audio.clique)
                         self.estado = self.S_JOGANDO
             elif self.estado == self.S_JOGANDO:
-                # Checa se o clique aconteceu dentro de algum botão de alternativa
                 for i, r in enumerate(self.rects_alt):
                     if r.collidepoint(evento.pos):
-                        audio.tocar(audio.clique)
                         self._responder(i)
                         break
             elif self.estado == self.S_FEEDBACK:
                 self._avancar()
             elif self.estado in (self.S_GAMEOVER, self.S_FIM):
                 if self._rect_btn().collidepoint(evento.pos):
+                    audio.tocar(audio.clique)
+                    salvar_recorde(self.pontuacao)
+                    salvar_no_ranking(self.nickname, self.pontuacao)
+                    self.estado = self.S_RANKING
+            elif self.estado == self.S_RANKING:
+                if self._rect_btn_ranking().collidepoint(evento.pos):
+                    audio.tocar(audio.clique)
                     self.reiniciar()
 
     def _hover(self, pos):
@@ -126,21 +132,35 @@ class CosmoMind:
     def _responder(self, idx):
         # Valida se a resposta que o player escolheu está certa ou errada
         self.selecionada = idx
+        pergunta_atual = self.perguntas[self.indice]
         correta = self.perguntas[self.indice]["correta"]
+        dificuldade = pergunta_atual.get("dificuldade", "facil")
         
         if idx == correta:
-            self.pontuacao += 1
-            self.escudo_timer = 90 # Liga o escudo por 90 frames
+            valores_pontos={"facil": 10, "medio": 20, "dificil": 30}
+            self.pontuacao += valores_pontos.get(dificuldade, 10)
+            self.combo_acertos += 1
+            
             
             audio.tocar(audio.acerto)
             audio.tocar(audio.tiro)
+
+            if self.combo_acertos == 5:
+                if self.vida < 10:
+                    self.vida += 1
+                    audio.tocar(audio.bonus)
+                self.combo_acertos = 0
+            self.escudo_timer = 90  # Ativa o escudo por 1.5 segundos
+
             # Atira o laser na direção exata do asteroide
             nave_x = LARGURA // 2
             nave_y = (self.PAINEL_Y // 2 + 10)
             novo_tiro = Tiro(nave_x, nave_y, self.asteroide.x, self.asteroide.y)
             self.tiros.append(novo_tiro)
         else:
+            self.pontuacao = max(0, self.pontuacao - 10)  # Penalidade de pontos por erro
             self.erros += 1
+            self.combo_acertos = 0  # Reseta o combo de acertos
             self.ast_vel += self.VEL_AUMENTO # Punição: o asteroide acelera se errar
             self.flash_timer = 18 
             audio.tocar(audio.erro)
@@ -160,12 +180,18 @@ class CosmoMind:
             self.alerta_tocado = False
             
         # Vê se o banco de perguntas acabou pra fechar a partida
-        if self.indice >= len(self.perguntas):
-            self.estado = self.S_FIM
-            audio.tocar(audio.vitoria)
+        if self.indice >= limite_atual:
+            if self.nivel_atual < 5:
+                self.nivel_atual += 1
+                audio.tocar(audio.nivel_up)
+                self._configurar_nivel()
+            else:
+                self.estado = self.S_FIM
+                audio.tocar(audio.vitoria)
+                return
         else:
-            self.estado = self.S_JOGANDO
-            self._calcular_layout()
+            if self.asteroide_destruido:
+                self._gerar_novo_asteroide()
 
     def atualizar(self):
         # Atualiza a movimentação de tudo que roda em tempo real na gameplay
@@ -180,9 +206,23 @@ class CosmoMind:
 
         if self.estado not in (self.S_JOGANDO, self.S_FEEDBACK):
             return
+        
+        if self.estado == self.S_JOGANDO:
+            self.tempo_restante -= 1 / 60.0
+            if self.tempo_restante <= 0:
+                self.tempo_restante = 30.0
+                self.pontuacao = max(0, self.pontuacao - 10)
+                self.erros += 1
+                self.combo_acertos = 0
+                self.ast_vel += self.VEL_AUMENTO
+                self.flash_timer = 18
+                # Se o tempo acabar, passa para a próxima pergunta mas mantém o asteroide vindo
+                self._avancar()
+
 
         self.ast_rot += 0.012 # Faz o asteroide girar de leve enquanto cai
-
+        if self.escudo_timer > 0:
+            self.escudo_timer -= 1
         NAVE_CX = LARGURA // 2
         nave_y_area = (self.PAINEL_Y // 2 + 10)
 

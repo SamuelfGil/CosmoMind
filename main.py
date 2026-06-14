@@ -19,27 +19,18 @@ def main():
 
     # Cria a instância da lógica principal do jogo
     jogo = CosmoMind(tela)
-
+    rodando = True
     # Loop Infinito (principal) que fica rodando enquanto o jogo estiver aberto
-    while True:
+    while rodando:
         # Loop de escuta de eventos nativos do sistema operacional
-        for ev in pygame.event.get():
-            # Se fechar no X da janela ou apertar ESC, mata o processo na hora
-            if ev.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+        for evento in pygame.get_events() if hasattr(pygame, 'get_events') else pygame.event.get():
+            if evento.type == pygame.QUIT:
+                rodando = False
+            
 
             # Manda o evento coletado pras regras internas do jogo avaliarem
-            jogo.processar_evento(ev)
+            jogo.processar_evento(evento)
 
-        # Trata o tempo dos timers de efeitos visuais a cada rodada do loop
-        if jogo.flash_timer > 0:
-            jogo.flash_timer -= 1
-        if jogo.escudo_timer > 0:
-            jogo.escudo_timer -= 1
 
         # Roda a física de movimento das entidades e colisões
         jogo.atualizar()
@@ -52,6 +43,9 @@ def main():
         
         # Garante que o jogo vai rodar cravado a 60 FPS pra não estourar a CPU
         relogio.tick(60)
+
+    pygame.quit()
+    sys.exit()
 
 
 if __name__ == "__main__":
