@@ -5,7 +5,7 @@ from src.config import *
 from src.funcoes import renderizar_texto, altura_texto
 from src.dados import carregar_perguntas
 from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
-
+from src.audio import audio
 # Sistema central que controla as telas e regras do jogo
 class CosmoMind:
     # Os estados possíveis da nossa máquina de estados do jogo
@@ -56,7 +56,7 @@ class CosmoMind:
         # Timers que controlam efeitos visuais temporários 
         self.flash_timer = 0
         self.escudo_timer = 0
-        
+        self.alerta_tocado = False
         # Gerenciamento dos lasers disparados pela nave
         self.tiros = []
         self.asteroide_destruido = False
@@ -96,15 +96,18 @@ class CosmoMind:
                             self.nickname += evento.unicode
         elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
             if self.estado == self.S_INICIO:
+                audio.tocar(audio.clique)
                 self.estado = self.S_NICKNAME
             elif self.estado == self.S_NICKNAME:
                 if self._rect_btn_nickname().collidepoint(evento.pos):
                     if len(self.nickname.strip()) > 0:
+                        audio.tocar(audio.clique)
                         self.estado = self.S_JOGANDO
             elif self.estado == self.S_JOGANDO:
                 # Checa se o clique aconteceu dentro de algum botão de alternativa
                 for i, r in enumerate(self.rects_alt):
                     if r.collidepoint(evento.pos):
+                        audio.tocar(audio.clique)
                         self._responder(i)
                         break
             elif self.estado == self.S_FEEDBACK:
@@ -129,6 +132,8 @@ class CosmoMind:
             self.pontuacao += 1
             self.escudo_timer = 90 # Liga o escudo por 90 frames
             
+            audio.tocar(audio.acerto)
+            audio.tocar(audio.tiro)
             # Atira o laser na direção exata do asteroide
             nave_x = LARGURA // 2
             nave_y = (self.PAINEL_Y // 2 + 10)
@@ -137,7 +142,9 @@ class CosmoMind:
         else:
             self.erros += 1
             self.ast_vel += self.VEL_AUMENTO # Punição: o asteroide acelera se errar
-            self.flash_timer = 18             # Tela pisca em vermelho
+            self.flash_timer = 18 
+            audio.tocar(audio.erro)
+            # Tela pisca em vermelho
             
         self.estado = self.S_FEEDBACK
 
@@ -150,10 +157,12 @@ class CosmoMind:
         if self.asteroide_destruido:
             self.asteroide = AsteroideMecanica(self.AST_INICIO_X, self.AST_INICIO_Y, raio=24)
             self.asteroide_destruido = False
+            self.alerta_tocado = False
             
         # Vê se o banco de perguntas acabou pra fechar a partida
         if self.indice >= len(self.perguntas):
             self.estado = self.S_FIM
+            audio.tocar(audio.vitoria)
         else:
             self.estado = self.S_JOGANDO
             self._calcular_layout()
@@ -189,6 +198,13 @@ class CosmoMind:
                 self.asteroide.x += nx * self.ast_vel
                 self.asteroide.y += ny * self.ast_vel
 
+            if dist < 140:
+                if not self.alerta_tocado:
+                    audio.tocar(audio.alerta)
+                    self.alerta_tocado = True
+            else:
+                self.alerta_tocado = False
+                
             # Se a distância entre o asteroide e a nave for menor que o raio deles: BATEU (acaba o jogo)
             if dist - self.asteroide.raio < 18 + 4:
                 self.estado = self.S_GAMEOVER

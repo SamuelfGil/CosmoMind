@@ -2,6 +2,7 @@ import pygame
 import sys
 from src.config import LARGURA, ALTURA
 from src.jogo import CosmoMind
+from src.audio import audio
 
 # O ponto de partida que inicia o executável do jogo
 def main():
@@ -10,6 +11,8 @@ def main():
     # Configura a janela física do jogo e o título que fica lá em cima da barra da janela
     tela = pygame.display.set_mode((LARGURA, ALTURA))
     pygame.display.set_caption("Espaço de Perguntas - CosmoMind")
+
+    audio.iniciar_musica()
     
     # Objeto de controle de tempo pra cravar os frames do jogo
     relogio = pygame.time.Clock()
