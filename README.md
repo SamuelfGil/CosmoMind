@@ -51,6 +51,7 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 git clone (https://github.com/SamuelfGil/CosmoMind.git)
 cd CosmoMind
 pip install pygame-ce
+pip install numpy
 python main.py
 ```
 
