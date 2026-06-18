@@ -6,6 +6,7 @@ from src.funcoes import renderizar_texto, altura_texto
 from src.dados import carregar_perguntas, carregar_recorde, salvar_recorde, salvar_no_ranking, carregar_ranking
 from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
 from src.audio import audio
+
 class CosmoMind:
     S_INICIO = "inicio"
     S_NICKNAME = "nickname"
@@ -69,9 +70,18 @@ class CosmoMind:
         self._gerar_novo_asteroide()
         self._calcular_layout()
 
+    def _obter_dificuldade_atual(self):
+        """Calcula dinamicamente a variação de dificuldade para alternar entre fácil, médio e difícil"""
+        ciclo = self.indice % 3
+        if ciclo == 0:
+            return "facil"
+        elif ciclo == 1:
+            return "medio"
+        else:
+            return "dificil"
+
     def _gerar_novo_asteroide(self):
         """Gera um novo asteroide do topo apenas se o anterior foi totalmente destruído ou colidiu"""
-        # CONFIGURADO: Agora o Boss só aparece na pergunta de índice 9 (10ª pergunta) do Nível 5
         self.is_boss = (self.nivel_atual == 5 and self.indice == 9)
         
         if self.is_boss:
@@ -151,7 +161,7 @@ class CosmoMind:
         self.selecionada = idx
         pergunta_atual = self.perguntas[self.indice]
         correta = pergunta_atual["correta"]
-        dificuldade = pergunta_atual.get("dificuldade", "facil")
+        dificuldade = self._obter_dificuldade_atual()
         
         if idx == correta:
             valores_pontos = {"facil": 10, "medio": 20, "dificil": 30}
@@ -197,8 +207,6 @@ class CosmoMind:
                 self.estado = self.S_FIM
                 return
         else:
-            # Se o asteroide anterior já morreu ou bateu, criamos um novo.
-            # Caso contrário, mantemos o atual persistente na tela!
             if self.asteroide_destruido:
                 self._gerar_novo_asteroide()
 
@@ -227,7 +235,6 @@ class CosmoMind:
                 self.ast_vel += self.VEL_AUMENTO
                 self.flash_timer = 18
                 audio.tocar(audio.erro)
-                # Se o tempo acabar, passa para a próxima pergunta mas mantém o asteroide vindo
                 self._avancar()
 
         self.ast_rot += 0.012
@@ -252,9 +259,9 @@ class CosmoMind:
                 if self.is_boss:
                     self.vida -= 7  
                 else:
-                    pergunta_atual = self.perguntas[self.indice]
-                    dif = pergunta_atual.get("dificuldade", "facil")
-                    self.vida -= {"facil": 1, "medio": 2, "dificil": 3}.get(dif, 1)
+                    dif = self._obter_dificuldade_atual()
+                    # Fácil tira 3 de vida, Média tira 2 e Difícil tira 1
+                    self.vida -= {"facil": 3, "medio": 2, "dificil": 1}.get(dif, 1)
                 audio.tocar(audio.impacto)
                 self.combo_acertos = 0
                 self.asteroide_destruido = True 
@@ -397,7 +404,9 @@ class CosmoMind:
         painel = pygame.Rect(0, self.PAINEL_Y, LARGURA, self.PAINEL_H)
         pygame.draw.rect(self.tela, FUNDO_PAINEL, painel)
         lw = LARGURA - 120
-        dif_tag = f" [{pergunta.get('dificuldade', 'facil').upper()}]"
+        
+        # Alterado: Agora exibe "[Dificuldade: DIFICULDADE_AQUI]" conforme solicitado
+        dif_tag = f" [Dificuldade: {self._obter_dificuldade_atual().upper()}]"
         renderizar_texto(self.tela, pergunta["pergunta"] + dif_tag, fonte_pergunta, BRANCO, 60, self.PAINEL_Y + 20, lw)
 
         for i, (rect, alt) in enumerate(zip(self.rects_alt, pergunta["alternativas"])):
