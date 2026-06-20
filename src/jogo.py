@@ -44,6 +44,11 @@ class CosmoMind:
         self.is_boss = False
         self._configurar_nivel()
 
+    def _recuperar_vida(self):
+        if self.vida < 10:
+            self.vida += 1
+            audio.tocar(audio.bonus)
+
     def _configurar_nivel(self):
         qtd_necessaria = self.perguntas_por_nivel.get(self.nivel_atual, 5)
         pool = list(self.todas_perguntas) if self.todas_perguntas else []
@@ -172,9 +177,7 @@ class CosmoMind:
             audio.tocar(audio.tiro)
 
             if self.combo_acertos == 5:
-                if self.vida < 10:
-                    self.vida += 1
-                    audio.tocar(audio.bonus)
+                self._recuperar_vida()
                 self.combo_acertos = 0
             self.escudo_timer = 90
             
