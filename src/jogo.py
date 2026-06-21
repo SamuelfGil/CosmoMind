@@ -54,7 +54,11 @@ class CosmoMind:
         pool = list(self.todas_perguntas) if self.todas_perguntas else []
         
         if not pool:
-            pool = [{"pergunta": "Erro ao carregar perguntas.json", "alternativas": ["A", "B", "C", "D"], "correta": 0}]
+            pool = [{
+                "pergunta": "Alerta! perguntas.json nao encontrado na raiz do projeto.", 
+                "alternativas": ["Verificar local do arquivo", "Criar perguntas.json", "Reiniciar o terminal", "Apenas continuar"], 
+                "correta": 0
+            }]
 
         while len(pool) < (qtd_necessaria + 10): 
             pool.extend(pool)
@@ -73,10 +77,30 @@ class CosmoMind:
         self.is_boss = False
 
         self._gerar_novo_asteroide()
+        self._preparar_pergunta_atual()
+
+    def _preparar_pergunta_atual(self):
+        """Prepara e embaralha as alternativas dinamicamente mapeando o índice numérico correto"""
+        if self.indice >= len(self.perguntas):
+            return
+
+        pergunta_crua = self.perguntas[self.indice]
+        
+        # Como seu JSON usa inteiros (0, 1, 2, 3), pegamos o texto da resposta certa original
+        indice_original = pergunta_crua["correta"]
+        texto_correto = pergunta_crua["alternativas"][indice_original]
+
+        # Clona e embaralha as alternativas para exibir na tela
+        alts_embaralhadas = list(pergunta_crua["alternativas"])
+        random.shuffle(alts_embaralhadas)
+
+        # Atualiza o índice correto baseado na nova posição que o texto assumiu após o shuffle
+        self.indice_correto_atual = alts_embaralhadas.index(texto_correto)
+        self.alternativas_atuais = alts_embaralhadas
+        
         self._calcular_layout()
 
     def _obter_dificuldade_atual(self):
-        """Calcula dinamicamente a variação de dificuldade para alternar entre fácil, médio e difícil"""
         ciclo = self.indice % 3
         if ciclo == 0:
             return "facil"
@@ -86,7 +110,6 @@ class CosmoMind:
             return "dificil"
 
     def _gerar_novo_asteroide(self):
-        """Gera um novo asteroide do topo apenas se o anterior foi totalmente destruído ou colidiu"""
         self.is_boss = (self.nivel_atual == 5 and self.indice == 9)
         
         if self.is_boss:
@@ -101,15 +124,12 @@ class CosmoMind:
 
     def _calcular_layout(self):
         self.rects_alt = []
-        if self.indice >= len(self.perguntas):
-            return
-        pergunta = self.perguntas[self.indice]
         x = 60
         lw = LARGURA - 120
         y = self.PAINEL_Y + 75
         gap = 8
 
-        for i, alt in enumerate(pergunta["alternativas"]):
+        for i, alt in enumerate(self.alternativas_atuais):
             h = max(46, altura_texto(alt, fonte_alt, lw - 50) + 18)
             self.rects_alt.append(pygame.Rect(x, y, lw, h))
             y += h + gap
@@ -164,11 +184,10 @@ class CosmoMind:
 
     def _responder(self, idx):
         self.selecionada = idx
-        pergunta_atual = self.perguntas[self.indice]
-        correta = pergunta_atual["correta"]
         dificuldade = self._obter_dificuldade_atual()
         
-        if idx == correta:
+        # Validando o clique dinamicamente contra a resposta correta remapeada
+        if idx == self.indice_correto_atual:
             valores_pontos = {"facil": 10, "medio": 20, "dificil": 30}
             self.pontuacao += valores_pontos.get(dificuldade, 10)
             self.combo_acertos += 1
@@ -181,13 +200,12 @@ class CosmoMind:
                 self.combo_acertos = 0
             self.escudo_timer = 90
             
-            # Dispara o laser em direção ao asteroide atual
             self.tiros.append(Tiro(LARGURA // 2, (self.PAINEL_Y // 2 + 20), self.asteroide.x, self.asteroide.y))
         else:
             self.pontuacao = max(0, self.pontuacao - 10)
             self.erros += 1
             self.combo_acertos = 0 
-            self.ast_vel += self.VEL_AUMENTO # O asteroide atual acelera!
+            self.ast_vel += self.VEL_AUMENTO
             self.flash_timer = 18 
             audio.tocar(audio.erro)            
             
@@ -214,7 +232,7 @@ class CosmoMind:
                 self._gerar_novo_asteroide()
 
         self.estado = self.S_JOGANDO
-        self._calcular_layout()
+        self._preparar_pergunta_atual()
 
     def atualizar(self):
         for estrela in LISTA_ESTRELAS:
@@ -247,7 +265,6 @@ class CosmoMind:
         NAVE_CX = LARGURA // 2
         nave_y_area = (self.PAINEL_Y // 2 + 20)
 
-        # Movimentação do asteroide
         if not self.asteroide_destruido:
             dx = NAVE_CX - self.asteroide.x
             dy = nave_y_area - self.asteroide.y
@@ -257,13 +274,11 @@ class CosmoMind:
                 self.asteroide.x += (dx / dist) * self.ast_vel
                 self.asteroide.y += (dy / dist) * self.ast_vel
 
-            # Colisão com a nave
             if dist - self.asteroide.raio < 24:
                 if self.is_boss:
                     self.vida -= 7  
                 else:
                     dif = self._obter_dificuldade_atual()
-                    # Fácil tira 3 de vida, Média tira 2 e Difícil tira 1
                     self.vida -= {"facil": 3, "medio": 2, "dificil": 1}.get(dif, 1)
                 audio.tocar(audio.impacto)
                 self.combo_acertos = 0
@@ -277,7 +292,6 @@ class CosmoMind:
                     self._avancar()
                     self._gerar_novo_asteroide()
 
-        # Checagem de colisões dos lasers com o asteroide
         if not self.asteroide_destruido:
             for tiro in self.tiros[:]:
                 dist_tiro = math.hypot(tiro.x - self.asteroide.x, tiro.y - self.asteroide.y)
@@ -340,7 +354,6 @@ class CosmoMind:
 
     def _d_jogo(self):
         pergunta = self.perguntas[self.indice]
-        correta = pergunta["correta"]
 
         if self.flash_timer > 0:
             alfa = int(160 * self.flash_timer / 18)
@@ -349,14 +362,14 @@ class CosmoMind:
             self.tela.blit(ov, (0, 0))
             self.flash_timer -= 1
 
-        self._d_jogo_area(correta)
-        self._d_painel_pergunta(pergunta, correta)
+        self._d_jogo_area()
+        self._d_painel_pergunta(pergunta)
 
         if self.estado == self.S_FEEDBACK:
             d = fonte_pequena.render("Clique em qualquer lugar para carregar a próxima pergunta ->", True, AMARELO)
             self.tela.blit(d, d.get_rect(center=(LARGURA // 2, ALTURA - 15)))
 
-    def _d_jogo_area(self, correta):
+    def _d_jogo_area(self):
         area_h = self.PAINEL_Y - 4
         pygame.draw.line(self.tela, AZUL_ESC, (0, self.PAINEL_Y - 2), (LARGURA, self.PAINEL_Y - 2), 2)
 
@@ -403,17 +416,17 @@ class CosmoMind:
             self.asteroide.desenhar(self.tela, self.ast_rot)
             self.asteroide.y = backup_y
 
-    def _d_painel_pergunta(self, pergunta, correta):
+    def _d_painel_pergunta(self, pergunta):
         painel = pygame.Rect(0, self.PAINEL_Y, LARGURA, self.PAINEL_H)
         pygame.draw.rect(self.tela, FUNDO_PAINEL, painel)
         lw = LARGURA - 120
         
-        # Alterado: Agora exibe "[Dificuldade: DIFICULDADE_AQUI]" conforme solicitado
         dif_tag = f" [Dificuldade: {self._obter_dificuldade_atual().upper()}]"
         renderizar_texto(self.tela, pergunta["pergunta"] + dif_tag, fonte_pergunta, BRANCO, 60, self.PAINEL_Y + 20, lw)
 
-        for i, (rect, alt) in enumerate(zip(self.rects_alt, pergunta["alternativas"])):
-            self._d_alt(i, rect, alt, correta)
+        # Atualizado para renderizar as alternativas embaralhadas locais
+        for i, (rect, alt) in enumerate(zip(self.rects_alt, self.alternativas_atuais)):
+            self._d_alt(i, rect, alt, self.indice_correto_atual)
 
     def _d_alt(self, idx, rect, texto, correta):
         hover = idx == self.hover
