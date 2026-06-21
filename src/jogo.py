@@ -6,6 +6,7 @@ from src.funcoes import renderizar_texto, altura_texto
 from src.dados import carregar_perguntas, carregar_recorde, salvar_recorde, salvar_no_ranking, carregar_ranking
 from src.sprites import LISTA_ESTRELAS, desenhar_nave, AsteroideMecanica, Tiro
 from src.audio import audio
+from SEMANA_2.SAMUEL_ABREU.sair import rect_btn_sair_jogo, desenhar_btn_sair_jogo, rect_btn_sair_ranking, desenhar_btn_sair_ranking
 
 class CosmoMind:
     S_INICIO = "inicio"
@@ -130,7 +131,9 @@ class CosmoMind:
                         if evento.unicode.isalnum() or evento.unicode == " ":
                             self.nickname += evento.unicode
         elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-            if self.estado == self.S_INICIO:
+            if self.estado in (self.S_JOGANDO, self.S_FEEDBACK) and rect_btn_sair_jogo().collidepoint(evento.pos):
+                pygame.event.post(pygame.event.Event(pygame.QUIT))
+            elif self.estado == self.S_INICIO:
                 audio.tocar(audio.clique)
                 self.estado = self.S_NICKNAME
             elif self.estado == self.S_NICKNAME:
@@ -155,6 +158,8 @@ class CosmoMind:
                 if self._rect_btn_ranking().collidepoint(evento.pos):
                     audio.tocar(audio.clique)
                     self.reiniciar()
+                elif rect_btn_sair_ranking().collidepoint(evento.pos):
+                    pygame.event.post(pygame.event.Event(pygame.QUIT))
 
     def _hover(self, pos):
         if self.estado != self.S_JOGANDO:
@@ -359,6 +364,7 @@ class CosmoMind:
     def _d_jogo_area(self, correta):
         area_h = self.PAINEL_Y - 4
         pygame.draw.line(self.tela, AZUL_ESC, (0, self.PAINEL_Y - 2), (LARGURA, self.PAINEL_Y - 2), 2)
+        desenhar_btn_sair_jogo(self.tela)
 
         bx, by, bw, bh = 20, 20, 250, 8
         pygame.draw.rect(self.tela, CINZA_ESC, (bx, by, bw, bh), border_radius=4)
@@ -505,6 +511,7 @@ class CosmoMind:
                 self.tela.blit(vazio_surf, (box_x + box_w - 120, curr_y + 8))
 
         self._btn_voltar_ranking("Voltar para o Menu", (LARGURA // 2, ALTURA - 60))
+        desenhar_btn_sair_ranking(self.tela)
 
     def _btn(self, texto, centro):
         r = pygame.Rect(0, 0, 280, 52)
