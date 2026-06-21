@@ -1,13 +1,14 @@
 import pygame
 
+# Inicialização compulsória dos módulos internos do Pygame e renderizadores de texto
 pygame.init()
 pygame.font.init()
 
-# Configurações de Janela
+# Configurações de Dimensão da Janela de Exibição
 LARGURA = 1024
 ALTURA = 720
 
-# Paleta de Cores (Estilo Sci-Fi/Espacial)
+# Paleta de Cores em Formato RGB 
 FUNDO = (10, 10, 22)
 FUNDO_PAINEL = (18, 18, 38)
 
@@ -28,7 +29,7 @@ VERMELHO_ESC = (110, 25, 35)
 LARANJA = (240, 110, 40)
 AMARELO = (250, 210, 50)
 
-# Inicialização de Fontes do Sistema
+# Inicialização e Configuração das Fontes Tipográficas do Sistema
 fonte_titulo = pygame.font.SysFont("Arial", 36, bold=True)
 fonte_pergunta = pygame.font.SysFont("Arial", 22, bold=True)
 fonte_alt = pygame.font.SysFont("Arial", 18)

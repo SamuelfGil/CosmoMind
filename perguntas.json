@@ -1,152 +1,152 @@
 [
     {
-        "pergunta": "O que é um algoritmo?",
+        "pergunta": "O que é um tipo de dado?",
         "alternativas": [
-            "Uma linguagem de programação",
-            "Uma sequência lógica e finita de passos para resolver um problema",
-            "Uma peça de hardware do computador",
-            "Um erro que ocorre durante a compilação"
+            "Apaga variáveis da memória",
+            "Classifica o valor que uma variável armazena",
+            "Um laço de repetição",
+            "Um arquivo de código-fonte"
         ],
         "correta": 1
     },
     {
-        "pergunta": "Para que serve o 'if/else'?",
+        "pergunta": "Qual é um exemplo de string (texto)?",
         "alternativas": [
-            "Repetir código infinitamente",
-            "Armazenar dados permanentemente",
-            "Executar blocos diferentes conforme uma condição",
-            "Declarar variáveis"
-        ],
-        "correta": 2
-    },
-    {
-        "pergunta": "O que é uma variável?",
-        "alternativas": [
-            "Altera a velocidade do processador.",
-            "Espaço na memória para armazenar um dado que pode mudar.",
-            "Palavra reservada que não pode ser modificada.",
-            "Laço de repetição que varia seus passos."
-        ],
-        "correta": 1
-    },
-    {
-        "pergunta": "Qual estrutura é melhor quando sabemos o número exato de repetições?",
-        "alternativas": [
-            "while",
-            "if/else",
-            "for",
-            "switch/case"
-        ],
-        "correta": 2
-    },
-    {
-        "pergunta": "O que é recursividade?",
-        "alternativas": [
-            "Uma função que chama a si mesma para resolver partes menores do problema.",
-            "Um for dentro de outro for.",
-            "Um erro lógico que trava o computador.",
-            "Converter código-fonte em linguagem de máquina."
-        ],
-        "correta": 0
-    },
-        {
-        "pergunta": "O que é um algoritmo?",
-        "alternativas": [
-            "Uma linguagem de programação",
-            "Uma sequência lógica e finita de passos para resolver um problema",
-            "Uma peça de hardware do computador",
-            "Um erro que ocorre durante a compilação do código"
-        ],
-        "correta": 1
-    },
-    {
-        "pergunta": "Para que serve a estrutura condicional 'if/else' (se/senão)?",
-        "alternativas": [
-            "Para repetir um bloco de código infinitamente",
-            "Para armazenar dados permanentemente na memória",
-            "Para executar diferentes blocos de código dependendo de uma condição ser verdadeira ou falsa",
-            "Para declarar variáveis no início do programa"
-        ],
-        "correta": 2
-    },
-    {
-        "pergunta": "Qual estrutura de repetição é mais adequada quando já sabemos o número exato de vezes que queremos repetir um bloco de código?",
-        "alternativas": [
-            "while (enquanto)",
-            "if/else (se/senão)",
-            "for (para)",
-            "switch/case (escolha/caso)"
-        ],
-        "correta": 2
-    },
-    {
-        "pergunta": "Qual é a principal característica de um laço 'while' (enquanto)?",
-        "alternativas": [
-            "Ele executa apenas uma vez, independentemente da condição.",
-            "Ele repete o bloco de código enquanto uma condição especificada for verdadeira.",
-            "Ele não permite o uso de variáveis dentro do seu escopo.",
-            "Ele só pode ser usado para realizar operações matemáticas."
-        ],
-        "correta": 1
-    },
-    {
-        "pergunta": "O que é recursividade em programação?",
-        "alternativas": [
-            "Um conceito onde uma função chama a si mesma para resolver partes menores do mesmo problema.",
-            "Um laço 'for' colocado dentro de outro laço 'for'.",
-            "Um erro lógico que faz o computador travar.",
-            "O processo de converter um código-fonte para linguagem de máquina."
-        ],
-        "correta": 0
-    },
-    {
-        "pergunta": "O que acontece se a condição de parada de um laço de repetição (como o 'while') nunca for alcançada?",
-        "alternativas": [
-            "O laço é ignorado pelo compilador.",
-            "O programa finaliza automaticamente com sucesso.",
-            "As variáveis são redefinidas para zero.",
-            "O programa entra em um loop infinito, executando indefinidamente."
+            "3.14",
+            "True",
+            "42",
+            "\"Olá, mundo!\""
         ],
         "correta": 3
     },
     {
-        "pergunta": "Em relação aos tipos de dados, qual tipo é normalmente usado para controlar uma estrutura 'if' (verdadeiro ou falso)?",
+        "pergunta": "O que faz o operador '=' em programação?",
         "alternativas": [
-            "Inteiro (Int)",
-            "Texto (String)",
-            "Booleano (Boolean)",
-            "Ponto Flutuante (Float)"
+            "Compara dois valores",
+            "Apaga uma variável",
+            "Guarda um valor em uma variável",
+            "Soma dois números"
         ],
         "correta": 2
     },
     {
-        "pergunta": "Qual é a principal vantagem de utilizarmos funções (ou métodos) na criação de algoritmos?",
+        "pergunta": "Para que serve um comentário no código?",
         "alternativas": [
-            "Deixar a execução do código mais lenta e segura.",
-            "Evitar a repetição de código, facilitando a organização e a manutenção.",
-            "Eliminar a necessidade de usar variáveis.",
-            "Impedir que outros programadores leiam o código."
-        ],
-        "correta": 1
-    },
-    {
-        "pergunta": "O que é uma variável?",
-        "alternativas": [
-            "Um comando que altera a velocidade do processador.",
-            "Um espaço reservado na memória para armazenar um dado que pode mudar durante a execução do programa.",
-            "Uma palavra reservada da linguagem que não pode ser modificada.",
-            "Um laço de repetição que varia seu número de passos."
-        ],
-        "correta": 1
-    },
-    {
-        "pergunta": "Ao usar a recursividade, o que é fundamental incluir na função para evitar um loop infinito?",
-        "alternativas": [
-            "Uma variável do tipo string.",
-            "Um laço 'for'.",
-            "Um caso base (ou condição de parada).",
-            "Uma função de impressão (print/console.log)."
+            "Acelera a execução",
+            "É executado antes das outras linhas",
+            "Explica o código sem afetar a execução",
+            "Declara variáveis globais"
         ],
         "correta": 2
+    },
+    {
+        "pergunta": "O que é uma lista em programação?",
+        "alternativas": [
+            "Variável que só guarda inteiros",
+            "Estrutura que armazena vários valores em sequência",
+            "Um laço com índice fixo",
+            "Comando que imprime na tela"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "Qual a diferença entre '==' e '='?",
+        "alternativas": [
+            "Não há diferença entre eles",
+            "'==' atribui e '=' compara",
+            "'==' compara e '=' atribui valor",
+            "'==' só funciona em laços"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "O que é escopo de uma variável?",
+        "alternativas": [
+            "A memória que ela ocupa",
+            "A região do código onde ela existe",
+            "O tipo de dado que ela assume",
+            "O nome que a identifica"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "O que ocorre ao passar argumento por valor?",
+        "alternativas": [
+            "A variável original é alterada",
+            "Uma cópia é criada; o original não muda",
+            "A variável original é apagada",
+            "O programa entra em recursão infinita"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "Diferença entre pilha (stack) e fila (queue)?",
+        "alternativas": [
+            "Pilha tem acesso aleatório; fila não",
+            "Pilha é FIFO e fila é LIFO",
+            "Pilha é LIFO e fila é FIFO",
+            "Ambas removem elementos pelo meio"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "O que é efeito colateral em uma função?",
+        "alternativas": [
+            "Sempre retorna um booleano",
+            "Modifica estado fora do seu próprio escopo",
+            "Executa mais lentamente",
+            "Chama outra função antes de retornar"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "Complexidade da busca binária em n elementos?",
+        "alternativas": [
+            "O(n²)",
+            "O(n)",
+            "O(log n)",
+            "O(1)"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "O que é um ponteiro em linguagens como C?",
+        "alternativas": [
+            "Variável que guarda endereço de memória",
+            "Função que aponta ao próximo elemento",
+            "Operador que redireciona saída do programa",
+            "Laço que percorre estruturas de dados"
+        ],
+        "correta": 0
+    },
+    {
+        "pergunta": "O que é polimorfismo em Orientação a Objetos?",
+        "alternativas": [
+            "Herdar atributos de múltiplas classes",
+            "Objetos diferentes responderem ao mesmo método de formas distintas",
+            "Impedir acesso aos atributos internos",
+            "Copiar literalmente uma classe existente"
+        ],
+        "correta": 1
+    },
+    {
+        "pergunta": "O que é uma condição de corrida (race condition)?",
+        "alternativas": [
+            "Algoritmo de ordenação competitivo",
+            "Erro ao compilar o mesmo arquivo duas vezes",
+            "Resultado depende da ordem imprevisível de processos concorrentes",
+            "Técnica de execução paralela de laços"
+        ],
+        "correta": 2
+    },
+    {
+        "pergunta": "Diferença entre memória estática e dinâmica?",
+        "alternativas": [
+            "Estática fica na heap; dinâmica na stack",
+            "Estática é definida na compilação; dinâmica é alocada em execução",
+            "Estática é mais lenta; dinâmica ignora verificações",
+            "Não há diferença prática entre elas"
+        ],
+        "correta": 1
     }
 ]

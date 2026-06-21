@@ -1,8 +1,6 @@
 # Nome do Jogo
 
-Projeto final da disciplina de Introdução a Algoritmos/Programação, desenvolvido com Python e Pygame.
-
-Este repositório é um template para os grupos da disciplina. A proposta é começar com uma base funcional e evoluir o jogo ao longo do semestre.
+CosmoMind
 
 ## Integrantes do grupo
 
@@ -48,7 +46,7 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 ### 1. Clonar o repositório
 
 ```bash
-git clone (https://github.com/SamuelfGil/CosmoMind.git)
+git clone https://github.com/SamuelfGil/CosmoMind.git
 cd CosmoMind
 pip install pygame-ce
 pip install numpy
