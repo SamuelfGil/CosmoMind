@@ -1,66 +1,71 @@
 import os
 import json
 
-def carregar_perguntas(caminho="perguntas.json"):
-    if not os.path.exists(caminho):
-        return []
-    with open(caminho, "r", encoding="utf-8") as f:
-        return json.load(f)
+# Define o caminho dinâmico para o arquivo perguntas.json
+# os.path.abspath(__file__) garante o caminho correto independente de onde o terminal foi aberto
+DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
+CAMINHO_PERGUNTAS = os.path.join(DIRETORIO_ATUAL, "..", "perguntas.json")
 
-def carregar_recorde(caminho="data/recorde.txt"):
-    pasta = os.path.dirname(caminho)
-    if pasta and not os.path.exists(pasta):
-        os.makedirs(pasta, exist_ok=True)
-    if not os.path.exists(caminho):
+# Caminhos para salvar os dados de progresso e ranking (gerados na pasta raiz do projeto)
+CAMINHO_RECORDE = os.path.join(DIRETORIO_ATUAL, "..", "recorde.txt")
+CAMINHO_RANKING = os.path.join(DIRETORIO_ATUAL, "..", "ranking.json")
+
+def carregar_perguntas():
+    """Carrega o banco de perguntas estruturado a partir do arquivo JSON."""
+    try:
+        with open(CAMINHO_PERGUNTAS, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print(f"Erro: O arquivo perguntas.json não foi encontrado em: {CAMINHO_PERGUNTAS}")
+        return []
+
+def carregar_recorde():
+    """Recupera a maior pontuação salva no sistema."""
+    if not os.path.exists(CAMINHO_RECORDE):
         return 0
     try:
-        with open(caminho, "r", encoding="utf-8") as f:
+        with open(CAMINHO_RECORDE, "r", encoding="utf-8") as f:
             conteudo = f.read().strip()
             return int(conteudo) if conteudo.isdigit() else 0
-    except:
+    except IOError:
         return 0
 
-def salvar_recorde(pontuacao, caminho="data/recorde.txt"):
-    recorde_atual = carregar_recorde(caminho)
-    if pontuacao > recorde_atual:
-        pasta = os.path.dirname(caminho)
-        if pasta and not os.path.exists(pasta):
-            os.makedirs(pasta, exist_ok=True)
-        with open(caminho, "w", encoding="utf-8") as f:
-            f.write(str(pontuacao))
-        return True
-    return False
+def salvar_recorde(nova_pontuacao):
+    """Atualiza o recorde se a nova pontuação for maior que a anterior."""
+    recorde_atual = carregar_recorde()
+    if nova_pontuacao > recorde_atual:
+        try:
+            with open(CAMINHO_RECORDE, "w", encoding="utf-8") as f:
+                f.write(str(nova_pontuacao))
+        except IOError:
+            print("Erro ao tentar salvar o novo recorde.")
 
-def carregar_ranking(caminho="data/ranking.txt"):
-    if not os.path.exists(caminho):
+def carregar_ranking():
+    """Retorna a lista dos melhores pilotos ordenada por pontuação (Top 10)."""
+    if not os.path.exists(CAMINHO_RANKING):
         return []
-    
-    lista_ranking = []
     try:
-        with open(caminho, "r", encoding="utf-8") as f:
-            for linha in f:
-                if ":" in linha:
-                    nome, pts = linha.strip().split(":", 1)
-                    if pts.isdigit():
-                        lista_ranking.append((nome, int(pts)))
-    except:
-        pass
-    
-    lista_ranking.sort(key=lambda x: x[1], reverse=True)
-    return lista_ranking[:10]
+        with open(CAMINHO_RANKING, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
-def salvar_no_ranking(nickname, pontuacao, caminho="data/ranking.txt"):
-    pasta = os.path.dirname(caminho)
-    if pasta and not os.path.exists(pasta):
-        os.makedirs(pasta, exist_ok=True)
+def salvar_no_ranking(nickname, pontuacao):
+    """Insere o jogador atual no ranking geral e ordena do maior para o menor."""
+    if not nickname.strip():
+        nickname = "Piloto Anônimo"
         
-    tag_piloto = nickname.strip() if nickname.strip() else "Piloto_Anonimo"
-    ranking_atual = carregar_ranking(caminho)
+    ranking = carregar_ranking()
+    ranking.append([nickname, pontuacao])
     
-    ranking_atual.append((tag_piloto, pontuacao))
-    ranking_atual.sort(key=lambda x: x[1], reverse=True)
-    top_10 = ranking_atual[:10]
+    # Ordena pelo maior número de pontos (index 1 do par)
+    ranking.sort(key=lambda x: x[1], reverse=True)
     
-    with open(caminho, "w", encoding="utf-8") as f:
-        for nome, pts in top_10:
-            f.write(f"{nome}:{pts}\n")
+    # Mantém apenas os 10 melhores resultados no arquivo
+    ranking = ranking[:10]
+    
+    try:
+        with open(CAMINHO_RANKING, "w", encoding="utf-8") as f:
+            json.dump(ranking, f, indent=4, ensure_ascii=False)
+    except IOError:
+        print("Erro ao tentar atualizar o banco de dados do ranking.")
