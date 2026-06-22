@@ -20,7 +20,7 @@ CosmoMind
 
 ## Descrição do jogo
 
-No jogo CosmoMind, o jogador estará no comando de uma nave espacial em um ambiente estilo Arcade interativo. Para conseguir atirar lasers e destruir os asteroides que estão vindo em sua direção com velocidades dinâmicas, o usuário precisará responder corretamente a perguntas conceituais atreladas a cada obstáculo. Caso a pergunta seja respondida incorretamente, o asteroide ganhará velocidade extra na tela.
+No jogo CosmoMind, o jogador assume o comando de uma nave espacial em um ambiente estilo Arcade totalmente interativo. Para disparar lasers e destruir os asteroides que avançam em sua direção com velocidades dinâmicas, o usuário deve responder corretamente a perguntas conceituais atreladas a cada obstáculo. Se a resposta for incorreta, o asteroide ganha velocidade extra na tela; caso atinja a nave, o jogador perderá pontos de vida.
 
 ## Objetivo do jogador
 
@@ -33,7 +33,7 @@ O objetivo é sobreviver ao maior número de ondas de asteroides que conseguir e
 - Ao acertar uma sequência de 5 respostas corretas, o jogador recupera 1 ponto de vida (limitado ao máximo de 10).
 - Os asteroides cujas perguntas associadas forem respondidas incorretamente ganharão velocidade extra na tela.
 - O jogador ganhará pontos após a eliminação de cada asteroide, variando de acordo com a dificuldade da pergunta relacionada.
-- A partida é encerrada automaticamente quando o número de pontos de vida chegar a zero ou quando o comando voluntário de saída for acionado.
+- A partida é encerrada automaticamente quando o número de pontos de vida chegar a zero ou quando o comando voluntário de saída for acionado ou quando acabar todas as perguntas.
 
 ## Controles
 
@@ -55,8 +55,9 @@ python main.py
 
 ## Como executar os testes
 
-(Criamos uma pasta chamada SEMANA_2, onde estão as partes de cada integrante do grupo.)
+
 ```bash
+pip install pytest
 python -m pytest
 ```
 
